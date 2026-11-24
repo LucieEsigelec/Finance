@@ -1,0 +1,12 @@
+﻿fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+supabase
+pandas
+numpy
+ta
+yfinance
+feedparser
+pytest
+httpx
