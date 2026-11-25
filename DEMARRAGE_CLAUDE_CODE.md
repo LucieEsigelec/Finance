@@ -7,7 +7,7 @@ Fichier pour le groupe (on peut le supprimer une fois le projet lancé).
 1. Copier tout le contenu de ce dossier à la racine du dépôt GitHub, puis committer sur une branche `docs/setup` et ouvrir une Pull Request.
 2. Récupérer auprès de la cheffe de groupe l'URL du projet Supabase et la clé `service_role` (Project Settings > API).
 3. Créer `backend\.env` à partir de `backend\.env.example` et y coller ces valeurs. **Ne jamais committer ce fichier.**
-4. Ouvrir un terminal PowerShell à la racine du dépôt et lancer `claude`.
+4. Ouvrir un terminal (PowerShell, bash ou zsh) à la racine du dépôt et lancer `claude`.
 
 ## Premier message à envoyer
 

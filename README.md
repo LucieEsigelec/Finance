@@ -7,23 +7,28 @@ Projet de groupe : application web qui conseille Achat, Vente ou Rien sur 5 acti
 - **Base** : Supabase PostgreSQL (`supabase/migrations/`)
 - **Documentation** : `docs/` (cahier des charges, conception, spécification, interface, charte, maquettes)
 
-Règles de développement, commandes Windows et méthode : voir [`CLAUDE.md`](CLAUDE.md).
+Règles de développement, commandes et méthode : voir [`CLAUDE.md`](CLAUDE.md).
 
-## Démarrer en local (PowerShell)
+L'application se déploie comme un site web (Vercel pour l'interface, Render pour l'API) : rien à installer pour l'utiliser. Le développement fonctionne sous Windows, Linux et macOS.
 
-```powershell
-# Backend
+## Démarrer en local
+
+Prérequis : Python 3.11 (conseillé : [`uv`](https://docs.astral.sh/uv/)), Node 20 LTS.
+
+```bash
+# Backend (terminal 1)
 cd backend
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env   # puis remplir les valeurs
-python -m uvicorn main:app --reload --port 8000
+uv venv --python 3.11
+uv pip install -r requirements.txt
+cp .env.example .env            # Windows : Copy-Item .env.example .env — puis remplir les valeurs
+# activer l'environnement : .venv\Scripts\Activate.ps1 (Windows) · source .venv/bin/activate (Linux, macOS)
+python -m tools.check_supabase  # vérifie la connexion à la base (lecture seule)
+python -m uvicorn main:app --reload --port 8000  # puis http://localhost:8000/api/health
 
-# Frontend (autre terminal)
+# Frontend (terminal 2)
 cd frontend
 npm install
-Copy-Item .env.example .env.local
+cp .env.example .env.local      # Windows : Copy-Item .env.example .env.local
 npm run dev
 ```
 

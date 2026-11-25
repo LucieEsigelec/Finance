@@ -1,12 +1,26 @@
-﻿fastapi
-uvicorn[standard]
-pydantic
-python-dotenv
-supabase
-pandas
-numpy
-ta
-yfinance
-feedparser
-pytest
-httpx
+# Dépendances du backend — Python 3.11 (voir .python-version).
+# Versions fixées pour que tout le groupe et Render aient exactement les mêmes.
+# Mise à jour : changer la version ici, relancer les tests, committer.
+
+# API
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.4
+python-dotenv==1.2.4
+
+# Base de données
+supabase==2.34.1
+
+# Calculs (indicateurs, statistiques)
+pandas==3.1.1
+numpy==2.4.6
+ta==0.11.0
+
+# Collecte des données (cours, actualités)
+yfinance==1.8.0
+feedparser==6.0.14
+
+# Tests
+pytest==9.2.0
+pytest-cov==7.1.0
+httpx==0.28.1
