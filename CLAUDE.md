@@ -112,9 +112,11 @@ TradingView Lightweight Charts, Recharts     pandas, numpy, ta, Pydantic        
 backend\
 ├── main.py                    # FastAPI, CORS
 ├── config.py                  # POIDS, SEUILS, contrôle RG-04 au démarrage
-├── db\supabase_client.py
-├── routers\  dashboard.py · simulator.py · transactions.py · stocks.py · history.py · market.py
+├── db\       supabase_client.py · repository.py (seul accès à Supabase) · cached_repository.py (mémoire courte)
+├── models\   schemas.py (validation des requêtes)
+├── routers\  dashboard.py · simulator.py · transactions.py (+ historique) · stocks.py (+ refresh) · deps.py
 ├── services\ info_scoring.py · technical_scoring.py · ratio_scoring.py · randomness_service.py · decision_engine.py
+│             sentiment.py · market_data.py · refresh_service.py · portfolio_service.py · common.py
 ├── tools\    refresh.py · stress_test.py · seed.py · check_supabase.py
 └── tests\
 frontend\
@@ -262,7 +264,7 @@ Toutes les valeurs numériques viennent de `config.py`, jamais en dur dans les s
 | 1 | Cahier des charges | Fait (v2.0) |
 | 2 | Dossier de conception | Fait (v1.0) — ajustements au §9 |
 | 3 | Dossier de spécification + dossier interface + charte + maquettes | Fait |
-| 4 | Application | **À développer** |
+| 4 | Application | **Prototype complet** (backend, API, interface, déploiement prêt) — guide : `docs/05_guide_du_code.md` |
 
 Ne pas coder une partie dont la formule n'est pas dans la SPEC, ni un écran qui n'est pas dans [UI] / [MAQ].
 
@@ -271,20 +273,20 @@ Ne pas coder une partie dont la formule n'est pas dans la SPEC, ni un écran qui
 ## 9. Écarts à intégrer
 
 ### Base de données (migration `003_ajustements.sql`)
-- [ ] Ajouter `resume TEXT` à `actualites`.
-- [ ] Ajouter `nom_client TEXT` à `portefeuille` (affiché sur l'Accueil).
-- [ ] Créer la fonction `executer_transaction()` (SPEC Annexe A.3) — migration `002`.
-- [ ] Charger au moins 1 an d'historique (2 ans recommandés) au premier refresh (MM200, 52 semaines).
+- [x] Ajouter `resume TEXT` à `actualites` (déjà présent dans la base).
+- [ ] Ajouter `nom_client TEXT` à `portefeuille` (affiché sur l'Accueil) — migration `003`, en attente d'accord.
+- [x] Créer la fonction `executer_transaction()` (SPEC Annexe A.3) — déjà présente dans la base.
+- [x] Charger au moins 1 an d'historique (2 ans recommandés) au premier refresh (MM200, 52 semaines).
 
 ### API
-- [ ] Ajouter `verdict` et `niveau_alerte` à la réponse de `/api/simulate`, et `niveau_alerte` + horodatage des données à `/api/dashboard`.
+- [x] Ajouter `verdict` et `niveau_alerte` à la réponse de `/api/simulate`, et `niveau_alerte` + horodatage des données à `/api/dashboard`.
 
 ### Interface (par rapport au DCT §7)
-- [ ] Nouvelle page `AccueilPage` sur `/`.
-- [ ] `DashboardPage` déplacée sur `/tableau-de-bord`, **sans** simulateur.
-- [ ] `SimulatorPage` sur `/simulateur` (remplace `SimulatorPanel` intégré au tableau de bord).
+- [x] Nouvelle page `AccueilPage` sur `/`.
+- [x] `DashboardPage` déplacée sur `/tableau-de-bord`, **sans** simulateur.
+- [x] `SimulatorPage` sur `/simulateur` (remplace `SimulatorPanel` intégré au tableau de bord ; `SimulatorPanel` devient son formulaire).
 - Pages du squelette de l'équipe conservées (`DashboardPage`, `StockDetailPage`, `HistoryPage`, `SimulatorPanel`) ; `AccueilPage` et `SimulatorPage` ajoutées en plus (voir `docs/decisions.md`).
-- [ ] `NavBar` à 5 onglets + bouton Actualiser.
+- [x] `NavBar` à 5 onglets + bouton Actualiser.
 
 ## 10. Questions ouvertes
 

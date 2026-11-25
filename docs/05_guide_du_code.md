@@ -239,3 +239,14 @@ frontend/src/
 ### 7.6 Vérifié
 
 `npm run build` et `npm run lint` passent. Le parcours a été joué automatiquement dans un vrai navigateur (Chromium piloté par Playwright) : simulation, opération refusée avec bouton désactivé, fenêtre de confirmation puis annulation (sans rien enregistrer), montant vide, onglets de la fiche, action inconnue.
+
+## 8. La mise en ligne
+
+Tout est décrit pas à pas dans `docs/06_deploiement.md`. En résumé :
+
+| Fichier | Rôle |
+|---|---|
+| `render.yaml` | Décrit l'API pour Render : dossier `backend`, Python 3.11, commande de lancement, route de santé `/api/health`, variables secrètes à saisir dans Render |
+| `frontend/vercel.json` | Permet à Vercel d'ouvrir directement n'importe quelle adresse de l'application |
+| `.github/workflows/refresh.yml` | Actualisation planifiée : appelle `POST /api/market/refresh` à 18 h et chaque heure en séance |
+| `.github/workflows/ci.yml` | Sur chaque Pull Request : tests du backend et construction du frontend |

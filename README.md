@@ -8,6 +8,7 @@ Projet de groupe : application web qui conseille Achat, Vente ou Rien sur 5 acti
 - **Documentation** : `docs/` (cahier des charges, conception, spécification, interface, charte, maquettes)
 
 Règles de développement, commandes et méthode : voir [`CLAUDE.md`](CLAUDE.md).
+Comprendre le code : [`docs/05_guide_du_code.md`](docs/05_guide_du_code.md) · Mettre en ligne : [`docs/06_deploiement.md`](docs/06_deploiement.md) · Décisions : [`docs/decisions.md`](docs/decisions.md).
 
 L'application se déploie comme un site web (Vercel pour l'interface, Render pour l'API) : rien à installer pour l'utiliser. Le développement fonctionne sous Windows, Linux et macOS.
 

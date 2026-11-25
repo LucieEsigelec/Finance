@@ -1,0 +1,24 @@
+# Actualisation planifiée des données (D-04) : appelle POST /api/market/refresh sur l'API
+# déployée, à 18 h (heure de Paris) et chaque heure pendant la séance, du lundi au vendredi.
+# Secret à créer dans GitHub (Settings > Secrets and variables > Actions) : API_URL
+# (ex. https://portefeuille-500k-api.onrender.com). Horaires en UTC (Paris = UTC+1 l'hiver, UTC+2 l'été).
+name: Actualisation des données
+
+on:
+  schedule:
+    - cron: "5 8-16 * * 1-5"  # chaque heure en séance (9 h – 17 h, heure d'hiver)
+    - cron: "0 17 * * 1-5"    # 18 h, après la clôture
+  workflow_dispatch: {}       # bouton « Run workflow » pour lancer à la main
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    if: ${{ vars.REFRESH_ENABLED == 'true' }}
+    steps:
+      - name: Réveiller l'API (Render gratuit s'endort)
+        run: curl --silent --show-error --max-time 90 --retry 3 --retry-delay 20 "${{ secrets.API_URL }}/api/health"
+      - name: Actualiser
+        run: |
+          code=$(curl --silent --output response.json --write-out "%{http_code}" --max-time 300 -X POST "${{ secrets.API_URL }}/api/market/refresh")
+          cat response.json
+          if [ "$code" != "200" ] && [ "$code" != "429" ]; then exit 1; fi
