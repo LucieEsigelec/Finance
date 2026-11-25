@@ -5,46 +5,48 @@
 
 ---
 
-## 0. Environnement de développement : Windows
+## 0. Environnement : multi-plateforme, déploiement web
 
-**Tout le projet se développe et s'exécute sous Windows 10/11.** Chaque commande, script et chemin doit fonctionner sous Windows, sans WSL.
+**L'application est un site web** : interface sur Vercel, API sur Render, base sur Supabase. Le client l'ouvre dans un navigateur, quel que soit son appareil ; il n'y a **aucun exécutable** à produire (D-04).
+**Le développement se fait sous Windows, Linux ou macOS** : chaque commande, script et chemin doit fonctionner sur les trois.
 
 | Règle | Détail |
 |---|---|
-| Terminal | **PowerShell** (5.1 ou 7). Pas de commande Bash (`ls -la`, `rm -rf`, `export`, `source`, `&&` en PowerShell 5.1…). |
-| Python | `py -3.11` pour créer l'environnement, puis `python` une fois l'environnement activé. |
-| Environnement virtuel | `py -3.11 -m venv .venv` puis `.\.venv\Scripts\Activate.ps1`. Si PowerShell bloque : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (une seule fois). |
-| Variables d'environnement | Fichier `.env` lu par `python-dotenv` (backend) ; `.env.local` lu par Vite (frontend). En console : `$env:NOM = "valeur"`, jamais `export`. |
-| Chemins | `pathlib.Path` en Python, jamais de chemin écrit en dur avec `/` ou `\`. Aucun chemin absolu (`C:\Users\...`) dans le code. |
-| Fins de ligne | `git config core.autocrlf true` ; fichier `.gitattributes` avec `* text=auto` et `*.sql text eol=lf`. |
-| Scripts | Scripts utilitaires en **Python** (`python -m tools.xxx`) ou en **PowerShell** (`.ps1`), jamais en `.sh`. |
+| Terminal | PowerShell (Windows) ou bash / zsh (Linux, macOS). La documentation donne les deux variantes quand elles diffèrent. |
+| Python | **3.11** sur tous les postes et sur Render (fichier `backend/.python-version`). `uv` est conseillé : il installe la bonne version sur les trois systèmes. |
+| Environnement virtuel | `backend/.venv`, créé par `uv venv` (ou `py -3.11 -m venv .venv` sous Windows, `python3.11 -m venv .venv` ailleurs). |
+| Variables d'environnement | Fichier `.env` lu par `python-dotenv` (backend) ; `.env.local` lu par Vite (frontend). Jamais de variable à exporter à la main pour lancer le projet. |
+| Chemins | `pathlib.Path` en Python, jamais de chemin écrit en dur avec `/` ou `\`. Aucun chemin absolu dans le code. |
+| Fins de ligne | `.gitattributes` fait foi (`* text=auto`, `*.sql` en LF). `git config core.autocrlf true` sous Windows, `input` ailleurs. |
+| Scripts | Scripts utilitaires **uniquement en Python** (`python -m tools.xxx`), jamais en `.ps1` ni en `.sh` : un seul script pour tous les systèmes. |
 | Encodage | Fichiers en UTF-8. Ouvrir les fichiers avec `encoding="utf-8"` en Python (la valeur par défaut de Windows n'est pas UTF-8). |
-| Noms de fichiers | Pas d'accents ni d'espaces dans les noms de fichiers et de dossiers. Windows ne distingue pas les majuscules : ne jamais avoir deux fichiers qui ne diffèrent que par la casse. |
-| Node | Node 20 LTS installé sous Windows ; `npm` dans PowerShell. |
+| Noms de fichiers | Pas d'accents ni d'espaces dans les noms de fichiers et de dossiers. Windows et macOS ne distinguent pas les majuscules : ne jamais avoir deux fichiers qui ne diffèrent que par la casse. |
+| Node | Node 20 LTS ; `npm`. |
 | Supabase | Projet Supabase **en ligne et partagé par tout le groupe** (pas de Docker). Voir les règles du §6.2 avant toute action sur la base. |
-| Ports | API sur `http://localhost:8000`, frontend Vite sur `http://localhost:5173`. Accepter l'invite du pare-feu Windows au premier lancement. |
+| Ports | API sur `http://localhost:8000`, frontend Vite sur `http://localhost:5173`. |
 
-### Commandes de référence (PowerShell)
+### Commandes de référence
 
-```powershell
-# Backend
-cd backend
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+```bash
+# Backend (depuis backend/)
+uv venv --python 3.11                 # une seule fois
+uv pip install -r requirements.txt
+# activer : .venv\Scripts\Activate.ps1 (Windows) · source .venv/bin/activate (Linux, macOS)
 python -m uvicorn main:app --reload --port 8000
 python -m pytest
+python -m tools.check_supabase       # connexion à la base, lecture seule
 
-# Frontend
-cd frontend
+# Frontend (depuis frontend/)
 npm install
 npm run dev
 
-# Rafraîchir les données de marché (tâche planifiée en local)
-Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/market/refresh
+# Rafraîchir les données de marché à la main
+python -m tools.refresh               # ou le bouton « Actualiser les données »
 ```
 
-La tâche planifiée locale (18 h et chaque heure en séance) passe par le **Planificateur de tâches Windows** qui lance `tools\refresh.ps1`. En production, Render s'en charge (cron job).
+**Actualisation planifiée** (18 h et chaque heure en séance) : un workflow **GitHub Actions** planifié appelle `POST /api/market/refresh` sur l'API déployée. En local, le bouton « Actualiser les données » ou `python -m tools.refresh` suffit.
+
+**Render gratuit** s'endort après 15 min sans visite : la première requête peut prendre 30 à 60 s (ENF-02). À traiter avant la soutenance (réveil préalable ou offre payante).
 
 ---
 
@@ -113,7 +115,7 @@ backend\
 ├── db\supabase_client.py
 ├── routers\  dashboard.py · simulator.py · transactions.py · stocks.py · history.py · market.py
 ├── services\ info_scoring.py · technical_scoring.py · ratio_scoring.py · randomness_service.py · decision_engine.py
-├── tools\    refresh.ps1 · stress_test.py · seed.py
+├── tools\    refresh.py · stress_test.py · seed.py · check_supabase.py
 └── tests\
 frontend\
 └── src\
@@ -140,7 +142,7 @@ docs\
 | `POST /api/transactions` | Enregistre une opération validée (via `executer_transaction`) | Fenêtre de confirmation | EF-02, RG-05 |
 | `GET /api/stocks/{ticker}` | Fiche action + onglet Infos (un seul appel pour les deux onglets) | Fiche action | EF-03 |
 | `GET /api/portfolio/history` | Historique 1 an, paginé, filtrable | Historique | RG-06 |
-| `POST /api/market/refresh` | Collecte + recalcul de `scores_actions` | Bouton Actualiser, Planificateur | ENF-02 |
+| `POST /api/market/refresh` | Collecte + recalcul de `scores_actions` | Bouton Actualiser, GitHub Actions planifié | ENF-02 |
 
 Codes : `400` règle de gestion violée (cash insuffisant, vente > position, conseil expiré), `404` ticker inconnu, `422` entrée invalide. Contrats JSON : SPEC Annexe A.
 
@@ -304,14 +306,14 @@ Ne pas coder une partie dont la formule n'est pas dans la SPEC, ni un écran qui
 4. **Calculs** : les 5 services + `DecisionEngine`, avec les tests V1 à V16.
 5. **API** : les 6 routes et leurs contrats JSON.
 6. **Interface** : `tokens.css` + Tailwind, les 8 composants de la charte, `NavBar` / `AlertBanner`, puis les pages dans l'ordre Tableau de bord → Simulateur (+ confirmation) → Fiche action → Historique → Accueil.
-7. **Recette** : REC-1 à REC-4, Planificateur Windows, déploiement.
+7. **Recette** : REC-1 à REC-4, actualisation planifiée (GitHub Actions), déploiement (Vercel, Render).
 
 ### À chaque session
 
 1. Relire ce fichier, puis `docs/decisions.md` (le créer s'il n'existe pas ; y noter chaque décision prise).
 2. **Proposer un plan avant de coder** et attendre la validation pour toute étape importante.
 3. Travailler une étape à la fois, sur sa branche ; lancer les tests ; expliquer ce qui a été fait.
-4. Vérifier que les commandes proposées fonctionnent **sous PowerShell Windows**.
+4. Vérifier que les commandes proposées fonctionnent **sous Windows (PowerShell) comme sous Linux / macOS**.
 5. Rattacher tout travail à une exigence et à une section de la SPEC ou de [UI].
 6. Lancer `python -m pytest` avant tout commit sur `services\` ou `routers\` ; `npm run build` avant tout commit sur `frontend\`.
 7. En fin de tâche : ce qui a été fait, ce qui reste, les questions pour le groupe.
