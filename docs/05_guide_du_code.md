@@ -99,6 +99,8 @@ Fait baisser tous les cours d'un même pourcentage, en mémoire, et regarde quan
 | `test_config.py` | Les réglages et RG-04 |
 | `test_main.py` | L'API de base et la connexion |
 | `test_refresh.py` | La collecte et l'actualisation, avec la fausse base de `fakes.py` |
+| `test_routes.py` | Les routes de l'API et les recettes REC-1 à REC-4 |
+| `test_cache.py` | La mémoire courte de l'API |
 
 Lancement depuis `backend/` : `python -m pytest`. La couverture doit rester au-dessus de 70 %.
 
@@ -135,3 +137,55 @@ Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week
 ### 5.4 Les tests sans base ni réseau
 
 `tests/fakes.py` contient une **fausse base en mémoire** (`FakeRepository`) et un **faux collecteur** (`FakeCollector`) qui fabrique 2 ans de cours réalistes. Les tests de `test_refresh.py` vérifient l'actualisation complète sans jamais toucher Supabase ni Internet : 5 conseils enregistrés, pas de doublon quand on relance, survie aux pannes, ouverture de la semaine.
+
+## 6. L'API (`backend/routers/`)
+
+### 6.1 Les routes
+
+| Route | Fichier | Ce qu'elle renvoie | Écrit en base ? |
+|---|---|---|---|
+| `GET /api/dashboard` | `dashboard.py` | Valeur du portefeuille, cash, part investie, performance de la semaine, niveau d'alerte, et pour les 5 actions : cours, variation du jour, actions détenues, conseil, prévision, dividende | Non |
+| `POST /api/simulate` | `simulator.py` | Pour chaque titre coché : nombre d'actions entier, reste en cash, conseil, verdict, 3 scénarios (% et €), dividende, raisons | **Non** |
+| `POST /api/transactions` | `transactions.py` | L'opération enregistrée et le nouveau cash, ou une erreur 400 | Oui, par `executer_transaction` uniquement |
+| `GET /api/stocks/{ticker}` | `stocks.py` | Tout pour la fiche action, ses deux onglets en un seul appel : un an de cours avec indicateurs, conseil, prévision, dividende, actualités, ratios, poids des piliers | Non |
+| `GET /api/portfolio/history` | `transactions.py` | Journal paginé, courbe de valeur jour par jour, bilan (plus-values, dividendes) | Non |
+| `POST /api/market/refresh` | `stocks.py` | Compte rendu de l'actualisation | Oui (données de marché) |
+| `GET /api/health` | `main.py` | « l'API tourne » | Non |
+
+La documentation interactive de toutes les routes est sur http://localhost:8000/docs quand l'API tourne.
+
+### 6.2 Le parcours « simuler puis enregistrer »
+
+1. **Simuler** (`POST /api/simulate`) : l'API relit le dernier conseil du titre, le cours, le cash et les actions détenues, puis appelle `simulate_operation`. Rien n'est écrit. Si l'opération est impossible (cash insuffisant, titre non détenu), le verdict est REFUSE et la raison est la première phrase affichée.
+2. **Confirmer** (`POST /api/transactions`) : l'interface renvoie le titre, l'opération, le nombre d'actions, le cours simulé et l'heure du conseil. L'API refuse (400) si le conseil a plus de 5 minutes ou si le cours a changé. Sinon, elle appelle **une seule fois** la fonction SQL `executer_transaction`, qui revérifie le cash (ou les actions détenues), enregistre l'opération et met à jour le cash d'un seul bloc. Le conseil donné à ce moment (note, raisons, graine du hasard) est enregistré avec l'opération, pour pouvoir le rejouer.
+
+### 6.3 Codes de réponse
+
+| Code | Quand |
+|---|---|
+| 200 | Tout va bien |
+| 400 | Règle de gestion non respectée : cash insuffisant, vente supérieure à la position, conseil de plus de 5 minutes, cours changé |
+| 404 | Code d'action inconnu |
+| 422 | Saisie invalide : montant négatif ou nul, opération inconnue, aucune action cochée |
+| 429 | Actualisation demandée moins de 5 minutes après la précédente |
+
+### 6.4 Répondre en moins de 2 secondes
+
+Chaque lecture de Supabase prend entre 0,3 et 1 seconde. Deux astuces :
+
+- **Lectures en parallèle** : `load_state` (`services/portfolio_service.py`) lance en même temps la lecture des actions, des conseils et du portefeuille.
+- **Mémoire courte** (`db/cached_repository.py`) : les données de marché sont gardées 10 minutes (elles ne changent qu'à l'actualisation, qui efface la mémoire), le portefeuille 30 secondes (effacé à chaque opération).
+
+Résultat mesuré : environ 1 seconde au premier affichage, quelques millisecondes ensuite.
+
+### 6.5 Les tests de recette
+
+`tests/test_routes.py` fait tourner l'API sur la fausse base et vérifie les 4 scénarios du cahier des charges :
+
+| Test | Vérifie |
+|---|---|
+| `test_rec1_…` | Les 5 actions ont un conseil, une prévision et un dividende |
+| `test_rec2_…` | Simuler puis enregistrer, en moins de 2 secondes ; la simulation seule n'écrit rien |
+| `test_rec3_…` | Chaque fiche a ses raisons (2 à 4) et son onglet Infos |
+| `test_rec4_…` | L'alerte passe au rouge à −10 % et plus aucun achat n'est conseillé |
+| `test_v14_…` | Si le cash ne suffit plus au moment de valider : erreur 400 et rien n'est écrit |

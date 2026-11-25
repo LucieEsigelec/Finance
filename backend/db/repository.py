@@ -148,10 +148,11 @@ class SupabaseRepository:
         self.client.table("scores_actions").insert(rows).execute()
 
     def latest_scores(self) -> dict[str, dict[str, Any]]:
-        """Dernière ligne de scores_actions pour chaque action (clé : action_id)."""
+        """Dernière ligne de scores_actions pour chaque action (clé : action_id).
+        Une actualisation écrit les 5 lignes ensemble : les 10 plus récentes suffisent."""
         rows = (
             self.client.table("scores_actions").select("*").order("date_calcul", desc=True)
-            .limit(50).execute().data
+            .limit(10).execute().data
         )
         latest: dict[str, dict[str, Any]] = {}
         for row in rows:
