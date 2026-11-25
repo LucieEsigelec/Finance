@@ -80,3 +80,22 @@ def test_settings_never_show_secret_keys(monkeypatch):
 def test_cors_origins_are_parsed(monkeypatch):
     monkeypatch.setenv("CORS_ORIGINS", " http://localhost:5173 , https://pf500.vercel.app/ ,")
     assert config.load_settings().cors_origins == ("http://localhost:5173", "https://pf500.vercel.app")
+
+
+def test_thresholds_default_to_spec_and_can_be_overridden_by_env(monkeypatch):
+    monkeypatch.delenv("SEUIL_ACHAT", raising=False)
+    assert config._threshold("SEUIL_ACHAT", 60.0) == 60.0  # SPEC par défaut
+    monkeypatch.setenv("SEUIL_ACHAT", " 55,5 ")
+    assert config._threshold("SEUIL_ACHAT", 60.0) == 55.5
+    monkeypatch.setenv("SEUIL_ACHAT", "quarante")
+    with pytest.raises(ConfigError, match="SEUIL_ACHAT"):
+        config._threshold("SEUIL_ACHAT", 60.0)
+    assert (config.SEUIL_ACHAT, config.SEUIL_VENTE) == (60.0, 40.0)  # tests lancés sans variable
+
+
+def test_decision_follows_configured_thresholds(monkeypatch):
+    from services.decision_engine import decide
+
+    monkeypatch.setattr(config, "SEUIL_ACHAT", 55.0)
+    monkeypatch.setattr(config, "SEUIL_VENTE", 45.0)
+    assert decide(56.3) == "ACHAT" and decide(54.9) == "RIEN" and decide(45.0) == "VENTE"

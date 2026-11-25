@@ -176,8 +176,21 @@ POIDS: Final[Mapping[str, float]] = {
     "hasard": 0.10,
 }
 
-SEUIL_ACHAT: Final = 60.0  # note ≥ 60 → ACHAT
-SEUIL_VENTE: Final = 40.0  # note ≤ 40 → VENTE
+def _threshold(name: str, default: float) -> float:
+    """Seuil lu dans l'environnement (essai sans toucher au code), sinon valeur de la SPEC."""
+    raw = os.getenv(name, "").strip().replace(",", ".")
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError as error:
+        raise ConfigError(f"{name} doit être un nombre, reçu {raw!r}") from error
+
+
+# SPEC §7.2 : 60 / 40. Réglables par SEUIL_ACHAT / SEUIL_VENTE pour un essai (D-10) ;
+# le contrôle check_config impose toujours SEUIL_VENTE < 50 < SEUIL_ACHAT.
+SEUIL_ACHAT: Final = _threshold("SEUIL_ACHAT", 60.0)  # note ≥ SEUIL_ACHAT → ACHAT
+SEUIL_VENTE: Final = _threshold("SEUIL_VENTE", 40.0)  # note ≤ SEUIL_VENTE → VENTE
 
 RAISONS_MIN: Final = 2
 RAISONS_MAX: Final = 4

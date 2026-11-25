@@ -20,3 +20,8 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false # ex. https://portefeuille-500k.vercel.app
+      # Essai de seuils resserrés (D-10). Supprimer ces deux lignes = retour à la SPEC (60 / 40).
+      - key: SEUIL_ACHAT
+        value: "55"
+      - key: SEUIL_VENTE
+        value: "45"

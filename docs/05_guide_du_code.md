@@ -29,6 +29,8 @@ Les calculs lourds (indicateurs, notes) sont faits **à l'avance**, lors d'une �
 
 **Pourquoi tout mettre dans `config.py` ?** Si le client veut changer un seuil (par exemple acheter à 65 au lieu de 60), on change une seule ligne, sans toucher aux calculs.
 
+**Les seuils de conseil** (60 / 40 dans la SPEC) peuvent être changés sans toucher au code, par les variables `SEUIL_ACHAT` et `SEUIL_VENTE` (dans `backend/.env` ou sur Render). Le site en ligne fait un essai à 55 / 45 (décision D-10). Un seuil invalide (par exemple un achat sous 50) empêche l'API de démarrer.
+
 **Le contrôle RG-04.** Au chargement, `check_rg04` regarde les 4 poids. Si celui des Informations n'est pas strictement le plus grand, ou si les poids ne font pas 100 %, une erreur est levée et l'API ne démarre pas (cas V8).
 
 ## 3. Les calculs (`backend/services/`)
