@@ -93,6 +93,9 @@ MACD_LENTE: Final = 26
 MACD_SIGNAL: Final = 9
 MACD_SIGNAL_CROISEMENT: Final = 1.0  # vient de croiser
 MACD_SIGNAL_MAINTIEN: Final = 0.5  # reste du même côté
+# « Vient de passer » = croisement pendant les 5 dernières séances (une semaine).
+# Précision ajoutée (SPEC §3.3 ne chiffre pas la durée) — voir docs/decisions.md D-06.
+MACD_FENETRE_CROISEMENT_SEANCES: Final = 5
 
 BOLLINGER_PERIODE: Final = 20
 BOLLINGER_ECARTS_TYPES: Final = 2
@@ -125,7 +128,7 @@ INFO_NB_FAITS_CLES: Final = 3
 
 RATIO_CA_CROISSANCE_NEUTRE_PCT: Final = 5.0  # +5 % → signal 0
 RATIO_CA_CROISSANCE_MAX_PCT: Final = 10.0  # +10 % → signal +1
-RATIO_DPA_HAUSSE_PCT: Final = 1.0  # hausse de plus de 1 % → +1
+RATIO_DPA_HAUSSE_PCT: Final = 1.0  # hausse de plus de 1 % → +1 ; baisse de plus de 1 % → −1 ; sinon stable (0)
 RATIO_RENDEMENT_ECART_MAX: Final = 0.5  # ±50 % de la moyenne des 5 → ±1
 
 IMPORTANCES_RATIOS: Final[Mapping[str, int]] = {
@@ -151,6 +154,13 @@ SEUIL_VENTE: Final = 40.0  # note ≤ 40 → VENTE
 
 RAISONS_MIN: Final = 2
 RAISONS_MAX: Final = 4
+# Un pilier « pèse » s'il déplace la note finale d'au moins 1 point (poids × écart à 50).
+RAISON_PILIER_MIN_POINTS: Final = 1.0
+
+# Confiance affichée (SPEC §7.2 ne chiffre pas les paliers) : écart de la note à 50.
+# Proposition provisoire — voir docs/decisions.md D-06.
+CONFIANCE_ECART_MOYENNE: Final = 15.0  # < 15 points → faible
+CONFIANCE_ECART_FORTE: Final = 25.0  # ≥ 25 points → forte
 
 # ---------------------------------------------------------------------------
 # 8. Prévision de la semaine — SPEC §9
@@ -210,6 +220,8 @@ def check_config() -> None:
         raise ConfigError("Seuils : il faut SEUIL_VENTE < 50 < SEUIL_ACHAT")
     if not ALERTE_ATTEINT_PCT < ALERTE_APPROCHE_PCT < 0:
         raise ConfigError("Alerte : il faut ALERTE_ATTEINT_PCT < ALERTE_APPROCHE_PCT < 0")
+    if not 0 < CONFIANCE_ECART_MOYENNE < CONFIANCE_ECART_FORTE <= NOTE_ECHELLE:
+        raise ConfigError("Confiance : il faut 0 < ECART_MOYENNE < ECART_FORTE <= 50")
     if not 0 < RAISONS_MIN <= RAISONS_MAX:
         raise ConfigError("Raisons : il faut 0 < RAISONS_MIN <= RAISONS_MAX")
     if set(IMPORTANCES_TECH) != {"bollinger", "rsi", "macd", "mm", "tendance"}:
