@@ -1,176 +1,177 @@
--- Schéma de la base Supabase — Portefeuille 500k (DCT §4, SPEC A.3)
--- Reconstitué le 2026-11-25 à partir de la base en ligne (supabase/verifier_schema.sql + API REST).
--- Sert à RECRÉER la base à l'identique sur un projet VIDE. Ne pas exécuter sur la base partagée :
--- les tables y existent déjà. Les évolutions passent par supabase/migrations/ (003 et suivantes).
--- Point non vérifiable à distance : les colonnes id BIGINT ont été écrites en BIGSERIAL (DCT).
+-- ============================================================================
+-- SCHEMA SUPABASE (PostgreSQL) — Portefeuille Actions 500 000 €
+-- ============================================================================
 
--- 1. Référentiel des 5 actions
-create table actions (
-  id               uuid primary key default gen_random_uuid(),
-  ticker           varchar(16)  not null unique,
-  nom              varchar(100) not null,
-  secteur          varchar(80)  not null,
-  dernier_cours    numeric(12,2) not null default 0,
-  dividende_estime numeric(10,2) not null default 0,
-  maj_le           timestamptz  not null default now()
+-- 1. Référentiel des 5 actions du CAC 40
+CREATE TABLE IF NOT EXISTS actions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticker VARCHAR(16) UNIQUE NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    secteur VARCHAR(80) NOT NULL,
+    dernier_cours NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    dividende_estime NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    maj_le TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. Historique des cours (OHLCV)
-create table historique_cours (
-  id          bigserial primary key,
-  action_id   uuid not null references actions(id) on delete cascade,
-  date_seance date not null,
-  open        numeric(12,2),
-  high        numeric(12,2),
-  low         numeric(12,2),
-  close       numeric(12,2) not null,
-  volume      bigint,
-  unique (action_id, date_seance)
+-- 2. Historique des cours (OHLCV) pour l'analyse graphique et les courbes
+CREATE TABLE IF NOT EXISTS historique_cours (
+    id BIGSERIAL PRIMARY KEY,
+    action_id UUID NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
+    date_seance DATE NOT NULL,
+    open NUMERIC(12, 2),
+    high NUMERIC(12, 2),
+    low NUMERIC(12, 2),
+    close NUMERIC(12, 2) NOT NULL,
+    volume BIGINT,
+    UNIQUE (action_id, date_seance)
 );
 
--- 3. Ratios financiers
-create table ratios_financiers (
-  id                   bigserial primary key,
-  action_id            uuid not null references actions(id) on delete cascade,
-  date_maj             date not null,
-  chiffre_affaires     numeric(18,2),
-  dividende_par_action numeric(10,2),
-  rendement_pct        numeric(6,2)
+-- 3. Ratios financiers (CA, dividende par action, rendement)
+CREATE TABLE IF NOT EXISTS ratios_financiers (
+    id BIGSERIAL PRIMARY KEY,
+    action_id UUID NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
+    date_maj DATE NOT NULL,
+    chiffre_affaires NUMERIC(18, 2),
+    dividende_par_action NUMERIC(10, 2),
+    rendement_pct NUMERIC(6, 2)
 );
 
--- 4. Actualités (pilier Informations, onglet Infos)
-create table actualites (
-  id           uuid primary key default gen_random_uuid(),
-  action_id    uuid not null references actions(id) on delete cascade,
-  date_pub     timestamptz not null,
-  titre        text not null,
-  source       varchar(100),
-  url          text,
-  resume       text,
-  score_impact numeric(5,2) not null check (score_impact >= 0 and score_impact <= 100)
+-- 4. Actualités (Pilier majoritaire Informations & onglet « Infos sur l'action »)
+CREATE TABLE IF NOT EXISTS actualites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action_id UUID NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
+    date_pub TIMESTAMPTZ NOT NULL,
+    titre TEXT NOT NULL,
+    source VARCHAR(100),
+    url TEXT,
+    resume TEXT,
+    score_impact NUMERIC(5, 2) NOT NULL CHECK (score_impact BETWEEN 0 AND 100)
 );
 
--- 5. Scores pré-calculés
-create table scores_actions (
-  id                    uuid primary key default gen_random_uuid(),
-  action_id             uuid not null references actions(id) on delete cascade,
-  date_calcul           timestamptz not null default now(),
-  score_global          numeric(5,2) not null check (score_global >= 0 and score_global <= 100),
-  decision              varchar(10) not null check (decision in ('ACHAT', 'VENTE', 'RIEN')),
-  prevision_semaine_pct numeric(6,2),
-  details_piliers       jsonb not null
+-- 5. Scores pré-calculés & prévisions hebdomadaires (cache < 2 s)
+CREATE TABLE IF NOT EXISTS scores_actions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action_id UUID NOT NULL REFERENCES actions(id) ON DELETE CASCADE,
+    date_calcul TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    score_global NUMERIC(5, 2) NOT NULL CHECK (score_global BETWEEN 0 AND 100),
+    decision VARCHAR(10) NOT NULL CHECK (decision IN ('ACHAT', 'VENTE', 'RIEN')),
+    prevision_semaine_pct NUMERIC(6, 2),
+    details_piliers JSONB NOT NULL
 );
 
--- 6. Portefeuille
-create table portefeuille (
-  id               uuid primary key default gen_random_uuid(),
-  capital_initial  numeric(14,2) not null default 500000.00,
-  cash_disponible  numeric(14,2) not null default 500000.00 check (cash_disponible >= 0),
-  val_semaine_prec numeric(14,2) not null default 500000.00,
-  date_ref_semaine date not null default current_date
+-- 6. Portefeuille (500 000 € & référence hebdomadaire pour le garde-fou RG-01)
+CREATE TABLE IF NOT EXISTS portefeuille (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    capital_initial NUMERIC(14, 2) NOT NULL DEFAULT 500000.00,
+    cash_disponible NUMERIC(14, 2) NOT NULL DEFAULT 500000.00 CHECK (cash_disponible >= 0),
+    val_semaine_prec NUMERIC(14, 2) NOT NULL DEFAULT 500000.00,
+    date_ref_semaine DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
--- 7. Transactions (RG-05 : quantités entières)
-create table transactions (
-  id               uuid primary key default gen_random_uuid(),
-  portefeuille_id  uuid not null references portefeuille(id) on delete cascade,
-  action_id        uuid not null references actions(id) on delete restrict,
-  type_op          varchar(10) not null check (type_op in ('ACHAT', 'VENTE')),
-  quantite_entiere integer not null check (quantite_entiere > 0),
-  prix_unitaire    numeric(12,2) not null,
-  montant_total    numeric(14,2) not null,
-  conseil_algo     jsonb not null,
-  date_execution   timestamptz not null default now()
+-- 7. Historique des allers-retours (RG-05 : titres entiers, RG-06 : suivi 1 an)
+CREATE TABLE IF NOT EXISTS transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    portefeuille_id UUID NOT NULL REFERENCES portefeuille(id) ON DELETE CASCADE,
+    action_id UUID NOT NULL REFERENCES actions(id) ON DELETE RESTRICT,
+    type_op VARCHAR(10) NOT NULL CHECK (type_op IN ('ACHAT', 'VENTE')),
+    quantite_entiere INT NOT NULL CHECK (quantite_entiere > 0),
+    prix_unitaire NUMERIC(12, 2) NOT NULL,
+    montant_total NUMERIC(14, 2) NOT NULL,
+    conseil_algo JSONB NOT NULL,
+    date_execution TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Index
-create index idx_hist_action_date   on historique_cours (action_id, date_seance desc);
-create index idx_news_action_date   on actualites (action_id, date_pub desc);
-create index idx_ratios_action_date on ratios_financiers (action_id, date_maj desc);
-create index idx_scores_action_date on scores_actions (action_id, date_calcul desc);
-create index idx_tx_pf_date         on transactions (portefeuille_id, date_execution desc);
+-- ============================================================================
+-- INDEX DE PERFORMANCE
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_hist_action_date   ON historique_cours(action_id, date_seance DESC);
+CREATE INDEX IF NOT EXISTS idx_ratios_action_date ON ratios_financiers(action_id, date_maj DESC);
+CREATE INDEX IF NOT EXISTS idx_news_action_date   ON actualites(action_id, date_pub DESC);
+CREATE INDEX IF NOT EXISTS idx_scores_action_date ON scores_actions(action_id, date_calcul DESC);
+CREATE INDEX IF NOT EXISTS idx_tx_pf_date         ON transactions(portefeuille_id, date_execution DESC);
 
--- Sécurité par ligne : activée, aucune politique => seul service_role (backend) accède (CLAUDE.md §6.2)
-alter table actions           enable row level security;
-alter table historique_cours  enable row level security;
-alter table ratios_financiers enable row level security;
-alter table actualites        enable row level security;
-alter table scores_actions    enable row level security;
-alter table portefeuille      enable row level security;
-alter table transactions      enable row level security;
-
--- Enregistrement atomique d'une opération (SPEC A.3, RG-05)
-create or replace function public.executer_transaction(
-  p_portefeuille uuid, p_action uuid, p_type text, p_qte integer, p_conseil jsonb)
-returns transactions
-language plpgsql
-as $function$
-declare
-    v_prix numeric(12, 2);
-    v_cash numeric(14, 2);
-    v_detenu int;
+-- ============================================================================
+-- FONCTION SQL ATOMIQUE : executer_transaction()
+-- Appelée via supabase.rpc('executer_transaction', ...) sur POST /api/transactions
+-- Verrouille le portefeuille, revérifie RG-05, insère la transaction et met à jour le cash
+-- ============================================================================
+CREATE OR REPLACE FUNCTION executer_transaction(
+    p_portefeuille UUID,
+    p_action UUID,
+    p_type TEXT,
+    p_qte INT,
+    p_conseil JSONB
+)
+RETURNS transactions
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_prix NUMERIC(12, 2);
+    v_cash NUMERIC(14, 2);
+    v_detenu INT;
     v_tx transactions;
-begin
-    if p_type not in ('ACHAT', 'VENTE') then
-        raise exception 'TYPE_OPERATION_INVALIDE';
-    end if;
+BEGIN
+    IF p_type NOT IN ('ACHAT', 'VENTE') THEN
+        RAISE EXCEPTION 'TYPE_OPERATION_INVALIDE';
+    END IF;
 
-    if p_qte <= 0 then
-        raise exception 'QUANTITE_INVALIDE';
-    end if;
+    IF p_qte <= 0 THEN
+        RAISE EXCEPTION 'QUANTITE_INVALIDE';
+    END IF;
 
     -- Verrouillage exclusif de la ligne portefeuille pendant la transaction
-    select cash_disponible into v_cash
-    from portefeuille
-    where id = p_portefeuille
-    for update;
+    SELECT cash_disponible INTO v_cash
+    FROM portefeuille
+    WHERE id = p_portefeuille
+    FOR UPDATE;
 
-    if not found then
-        raise exception 'PORTEFEUILLE_INTROUVABLE';
-    end if;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PORTEFEUILLE_INTROUVABLE';
+    END IF;
 
     -- Lecture du dernier cours connu
-    select dernier_cours into v_prix
-    from actions
-    where id = p_action;
+    SELECT dernier_cours INTO v_prix
+    FROM actions
+    WHERE id = p_action;
 
-    if not found then
-        raise exception 'ACTION_INTROUVABLE';
-    end if;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'ACTION_INTROUVABLE';
+    END IF;
 
-    -- Position actuelle détenue sur ce titre
-    select coalesce(
-        sum(case when type_op = 'ACHAT' then quantite_entiere else -quantite_entiere end),
-        0)
-    into v_detenu
-    from transactions
-    where portefeuille_id = p_portefeuille and action_id = p_action;
+    -- Calcul de la position actuelle détenue sur ce titre
+    SELECT COALESCE(
+        SUM(CASE WHEN type_op = 'ACHAT' THEN quantite_entiere ELSE -quantite_entiere END),
+        0
+    )
+    INTO v_detenu
+    FROM transactions
+    WHERE portefeuille_id = p_portefeuille AND action_id = p_action;
 
     -- Contrôles métier (RG-05)
-    if p_type = 'ACHAT' and (p_qte * v_prix) > v_cash then
-        raise exception 'RG05_CASH_INSUFFISANT';
-    end if;
+    IF p_type = 'ACHAT' AND (p_qte * v_prix) > v_cash THEN
+        RAISE EXCEPTION 'RG05_CASH_INSUFFISANT';
+    END IF;
 
-    if p_type = 'VENTE' and p_qte > v_detenu then
-        raise exception 'VENTE_SUPERIEURE_A_LA_POSITION';
-    end if;
+    IF p_type = 'VENTE' AND p_qte > v_detenu THEN
+        RAISE EXCEPTION 'VENTE_SUPERIEURE_A_LA_POSITION';
+    END IF;
 
-    insert into transactions (
+    -- Insertion de l'aller-retour
+    INSERT INTO transactions (
         portefeuille_id, action_id, type_op,
-        quantite_entiere, prix_unitaire, montant_total, conseil_algo)
-    values (
+        quantite_entiere, prix_unitaire, montant_total, conseil_algo
+    )
+    VALUES (
         p_portefeuille, p_action, p_type,
-        p_qte, v_prix, p_qte * v_prix, p_conseil)
-    returning * into v_tx;
+        p_qte, v_prix, p_qte * v_prix, p_conseil
+    )
+    RETURNING * INTO v_tx;
 
     -- Mise à jour atomique du cash disponible
-    update portefeuille
-    set cash_disponible = cash_disponible
-        + (case when p_type = 'ACHAT' then -1 else 1 end) * (p_qte * v_prix)
-    where id = p_portefeuille;
+    UPDATE portefeuille
+    SET cash_disponible = cash_disponible + (CASE WHEN p_type = 'ACHAT' THEN -1 ELSE 1 END) * (p_qte * v_prix)
+    WHERE id = p_portefeuille;
 
-    return v_tx;
-end;
-$function$;
-
--- Puis appliquer supabase/migrations/003_ajustements.sql (nom_client, contraintes, droits).
+    RETURN v_tx;
+END;
+$$;
