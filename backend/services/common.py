@@ -48,4 +48,4 @@ def weighted_mean(values: Mapping[str, float | None], weights: Mapping[str, floa
 
 def round_half_up(value: float, digits: int = 1) -> float:
     quantum = Decimal(1).scaleb(-digits)
-    return float(Decimal(repr(value)).quantize(quantum, rounding=ROUND_HALF_UP))
+    return float(Decimal(repr(float(value))).quantize(quantum, rounding=ROUND_HALF_UP))

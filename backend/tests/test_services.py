@@ -311,3 +311,15 @@ def test_reasons_vigilance_from_opposing_pillar():
     notes = {"infos": 80, "tech": 70, "ratios": 30, "hasard": 50}
     reasons = build_reasons(64, ACHAT, notes, TECH, FAITS, ratios_example())
     assert any(r.startswith("Point de vigilance") for r in reasons)
+
+
+def test_ratio_phrase_for_weak_but_positive_growth_is_not_called_a_rise():
+    weak = RatioScoringService().score(101.7, 100, None, None, None, None)
+    reasons = build_reasons(45, RIEN, {"infos": 50, "tech": 50, "ratios": weak.score, "hasard": 50},
+                            {}, [], weak)
+    assert any("croissance du chiffre d'affaires faible (+1,7 % sur un an)" in r for r in reasons)
+
+
+def test_sentiment_new_words():
+    assert sentiment.sentiment("L'action Dassault Systèmes enfonce son support et cède 8,5 %") < 0
+    assert sentiment.sentiment("L'action Air Liquide grappille 0,2 %") > 0

@@ -69,6 +69,33 @@ TICKERS: Final = ("DSY.PA", "TTE.PA", "CAP.PA", "RMS.PA", "AI.PA")
 CAPITAL_INITIAL: Final = Decimal("500000.00")
 
 # ---------------------------------------------------------------------------
+# 2 bis. Collecte des données — DCT §2.1, UI §6.3
+# ---------------------------------------------------------------------------
+
+# Recherche d'actualités par titre (Google News RSS en français + NewsAPI)
+NEWS_QUERIES: Final[Mapping[str, str]] = {
+    "DSY.PA": '"Dassault Systèmes"',
+    "TTE.PA": '"TotalEnergies"',
+    "CAP.PA": '"Capgemini"',
+    "RMS.PA": '"Hermès International" OR "Hermès" luxe',
+    "AI.PA": '"Air Liquide"',
+}
+# Un article n'est gardé que s'il cite l'entreprise (texte en minuscules, sans accents)…
+NEWS_MOTS_CLES: Final[Mapping[str, tuple[str, ...]]] = {
+    "DSY.PA": ("dassault systemes", "3ds", "solidworks", "catia"),
+    "TTE.PA": ("totalenergies", "total energies"),
+    "CAP.PA": ("capgemini",),
+    "RMS.PA": ("hermes",),
+    "AI.PA": ("air liquide",),
+}
+# … et s'il n'est pas une simple page de cotation.
+NEWS_BRUIT: Final = ("cours action", "cotation bourse", "cours de bourse en temps reel")
+NEWS_MAX_ARTICLES_PAR_SOURCE: Final = 15
+HTTP_TIMEOUT_SECONDES: Final = 20
+# Le bouton « Actualiser » est public : au plus une actualisation toutes les 5 minutes.
+REFRESH_INTERVALLE_MIN_SECONDES: Final = 300
+
+# ---------------------------------------------------------------------------
 # 3. Échelle des notes — SPEC §1.2 : note = 50 + 50 × signal
 # ---------------------------------------------------------------------------
 

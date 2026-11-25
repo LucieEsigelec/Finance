@@ -288,10 +288,15 @@ def _ratio_phrases(ratios: RatioResult | None, direction: int) -> list[str]:
     phrases = []
     signal = ratios.criteres
     if not is_missing(signal.get("ca")) and signal["ca"] * direction > 0:
-        sens = "hausse" if ratios.croissance_ca_pct >= 0 else "baisse"
-        phrases.append(f"chiffre d'affaires en {sens} de {fmt_pct(abs(ratios.croissance_ca_pct), False)} sur un an")
+        growth = ratios.croissance_ca_pct
+        if growth < 0:
+            phrases.append(f"chiffre d'affaires en baisse de {fmt_pct(abs(growth), False)} sur un an")
+        elif signal["ca"] < 0:
+            phrases.append(f"croissance du chiffre d'affaires faible ({fmt_pct(growth)} sur un an)")
+        else:
+            phrases.append(f"chiffre d'affaires en hausse de {fmt_pct(growth, False)} sur un an")
     if not is_missing(signal.get("dpa")) and signal["dpa"] * direction > 0:
-        sens = "hausse" if ratios.croissance_dpa_pct > 0 else "baisse"
+        sens = "hausse" if signal["dpa"] > 0 else "baisse"
         phrases.append(f"dividende en {sens} de {fmt_pct(abs(ratios.croissance_dpa_pct), False)}")
     if not is_missing(signal.get("rendement")) and signal["rendement"] * direction > 0:
         position = "supérieur" if signal["rendement"] > 0 else "inférieur"
