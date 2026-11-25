@@ -21,7 +21,7 @@
 | Scripts | Scripts utilitaires **uniquement en Python** (`python -m tools.xxx`), jamais en `.ps1` ni en `.sh` : un seul script pour tous les systèmes. |
 | Encodage | Fichiers en UTF-8. Ouvrir les fichiers avec `encoding="utf-8"` en Python (la valeur par défaut de Windows n'est pas UTF-8). |
 | Noms de fichiers | Pas d'accents ni d'espaces dans les noms de fichiers et de dossiers. Windows et macOS ne distinguent pas les majuscules : ne jamais avoir deux fichiers qui ne diffèrent que par la casse. |
-| Node | Node 20 LTS ; `npm`. |
+| Node | Node 24 LTS (D-05) ; `npm`. |
 | Supabase | Projet Supabase **en ligne et partagé par tout le groupe** (pas de Docker). Voir les règles du §6.2 avant toute action sur la base. |
 | Ports | API sur `http://localhost:8000`, frontend Vite sur `http://localhost:5173`. |
 
