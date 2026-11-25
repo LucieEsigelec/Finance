@@ -10,6 +10,9 @@
 | 4 | `04_dossier_interface.md` | Écrans, navigation, composants, connexions, interactions, charte | Pages, routes React, composants |
 | 5 | `charte/` | Tokens (couleurs, typo, espacements) et règles des 8 composants | Apparence |
 | 6 | `maquettes/` | Captures et balisage de chaque écran | Disposition des écrans |
+| 7 | `05_guide_du_code.md` | Explication simple de tout le code, étape par étape | Comprendre et présenter le code |
+| 8 | `06_deploiement.md` | Mise en ligne : Render, Vercel, GitHub Actions | Déploiement |
+| — | `decisions.md` | Journal des décisions prises pendant le développement | Choix et écarts |
 
 Le dossier interface (4) est le plus récent : il ajoute une **page d'accueil** et sépare le **simulateur** du tableau de bord. Là où le dossier de conception ou la spécification parlent d'un `SimulatorPanel` intégré au tableau de bord, c'est le dossier interface qui s'applique.
 
