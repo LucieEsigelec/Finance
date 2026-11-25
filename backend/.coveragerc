@@ -1,0 +1,11 @@
+# Couverture des tests : objectif ≥ 70 % (CLAUDE.md §5 Qualité)
+[run]
+source = .
+omit =
+    tests/*
+    tools/*
+    .venv/*
+
+[report]
+fail_under = 70
+skip_empty = true
