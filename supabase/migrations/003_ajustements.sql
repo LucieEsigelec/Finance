@@ -42,4 +42,15 @@ revoke execute on function public.executer_transaction(uuid, uuid, text, integer
 grant execute on function public.executer_transaction(uuid, uuid, text, integer, jsonb)
   to service_role;
 
+-- 5. Sécurité par ligne sur les 7 tables, sans politique publique (CLAUDE.md §6.2).
+--    Déjà active dans la base (activée automatiquement par Supabase) : ces lignes ne changent
+--    rien ici, mais garantissent la même protection si la base est recréée avec schema.sql.
+alter table public.actions           enable row level security;
+alter table public.historique_cours  enable row level security;
+alter table public.ratios_financiers enable row level security;
+alter table public.actualites        enable row level security;
+alter table public.scores_actions    enable row level security;
+alter table public.portefeuille      enable row level security;
+alter table public.transactions      enable row level security;
+
 commit;
