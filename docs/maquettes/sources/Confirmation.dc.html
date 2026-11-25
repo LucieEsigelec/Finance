@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Confirmation d’un achat</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/pf500/tokens.css">
+<link rel="stylesheet" href="ds/pf500/components/bundle.css">
+<script src="ds/pf500/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--ink);font-family:var(--font-sans)}
+a{color:var(--brand)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div style="position: relative; min-height: 900px; background: var(--surface-page); color: var(--ink); font-family: var(--font-sans);">
+<div aria-hidden="true">
+<dc-import name="NavBar" active="simulateur" hint-size="100%,64px"></dc-import>
+<div style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+<div style="height: 32px; width: 240px; border-radius: var(--radius-md); background: var(--surface-sunken);"></div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px;"><div style="flex: 1 1 360px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); height: 560px;"></div><div style="flex: 999 1 560px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); height: 560px;"></div></div>
+</div>
+</div>
+<div style="position: absolute; inset: 0; background: rgba(16, 26, 36, 0.45); display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box;">
+<div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 480px; background: var(--surface-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-dialog); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+<h2 id="dlg-title" style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; font-size: 20px; line-height: 28px;">Confirmer l’achat</h2>
+<x-import component-from-global-scope="Pf500.DecisionBadge" decision="ACHAT"></x-import>
+</div>
+<p style="margin: 0; color: var(--ink-muted); font-size: 15px;">Vérifiez l’opération avant de l’enregistrer dans votre portefeuille.</p>
+<div style="display: flex; flex-direction: column;"><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Action</span><span style="font-variant-numeric: tabular-nums; font-weight: 600;">Air Liquide · AI.PA</span></div><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Opération</span><span style="font-variant-numeric: tabular-nums; font-weight: 600;">Achat</span></div><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Nombre d’actions</span><span style="font-variant-numeric: tabular-nums; font-weight: 600;">118</span></div><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Cours retenu</span><span style="font-variant-numeric: tabular-nums; font-weight: 500;">168,40 €</span></div><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Montant de l’opération</span><span style="font-variant-numeric: tabular-nums; font-weight: 700;">19 871,20 €</span></div><div style="display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line);"><span style="color: var(--ink-muted);">Cash après l’opération</span><span style="font-variant-numeric: tabular-nums; font-weight: 500;">422 058,00 €</span></div></div>
+<div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 13px; line-height: 18px;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px; color: var(--brand);"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+<span>Le cours et votre cash seront revérifiés au moment de l’enregistrement. Si le cours a changé, vous devrez relancer la simulation.</span>
+</div>
+<div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+<a href="Simulateur.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: var(--radius-md); border: 1px solid var(--line-strong); background: var(--surface-card); color: var(--ink); font-weight: 600; font-size: 15px; text-decoration: none; box-sizing: border-box;">Annuler</a>
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: var(--radius-md); background: var(--buy); color: var(--on-buy); font-weight: 600; font-size: 15px; text-decoration: none;">Valider l’achat</a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

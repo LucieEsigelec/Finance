@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche action — Dassault Systèmes — infos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/pf500/tokens.css">
+<link rel="stylesheet" href="ds/pf500/components/bundle.css">
+<script src="ds/pf500/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--ink);font-family:var(--font-sans)}
+a{color:var(--brand)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: var(--surface-page); color: var(--ink); font-family: var(--font-sans);">
+<dc-import name="NavBar" active="action" hint-size="100%,64px"></dc-import>
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+<a href="Main.dc.html" style="font-size: 13px; line-height: 18px; text-decoration: none; font-weight: 500;">← Tableau de bord</a>
+<div style="background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--chart-dsy);" aria-hidden="true"></span>
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.01em;">Dassault Systèmes</h1>
+<span class="pf-mono">DSY.PA · Euronext Paris · logiciels</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+<div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 28px; line-height: 34px; font-weight: 600; font-variant-numeric: tabular-nums;">35,62 €</span><span style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--buy); font-variant-numeric: tabular-nums;">▲ +1,2 % aujourd’hui</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><x-import component-from-global-scope="Pf500.DecisionBadge" decision="ACHAT" size="lg"></x-import><span style="color: var(--ink-muted); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums;">Note 61,1 / 100 · confiance faible</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Vous détenez</span><span style="font-weight: 600; font-variant-numeric: tabular-nums;">1 436 actions · 51 150,32 €</span></div>
+</div>
+</div>
+<nav aria-label="Onglets de la fiche" style="display: flex; gap: 24px; border-bottom: 1px solid var(--line);">
+<a href="FicheAction.dc.html" aria-current="{{gCur}}" style="padding: 12px 4px; border-bottom: 2px solid transparent; color: var(--ink-muted); font-weight: 500; text-decoration: none; font-size: 15px;">Graphique</a>
+<a href="FicheInfos.dc.html" aria-current="{{iCur}}" style="padding: 12px 4px; border-bottom: 2px solid var(--brand); color: var(--brand); font-weight: 600; text-decoration: none; font-size: 15px;">Infos sur l’action</a>
+</nav>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+<section style="flex: 999 1 560px; min-width: 0; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 16px 24px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+<h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Actualités récentes</h2>
+<span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Les plus importantes d’abord · 7 derniers jours</span>
+</div>
+<div style="display: flex; gap: 24px; flex-wrap: wrap; padding: 16px 0 4px;">
+<div style="display: flex; flex-direction: column;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Note Informations</span><span style="font-size: 24px; line-height: 32px; font-weight: 600; font-variant-numeric: tabular-nums;">66,9 / 100</span></div>
+<div style="display: flex; flex-direction: column;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Impact récent sur la note finale</span><span style="font-size: 24px; line-height: 32px; font-weight: 600; color: var(--buy); font-variant-numeric: tabular-nums;">+6,8 points</span></div>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0;"><li style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: flex-start;">
+<div style="flex: none; width: 56px; height: 56px; border-radius: var(--radius-md); background: var(--buy-soft); color: var(--buy); display: flex; flex-direction: column; align-items: center; justify-content: center;"><span style="font-size: 18px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums;">80</span><span style="font-size: 10px; line-height: 12px; font-weight: 600;">/ 100</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+<div style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Il y a 1 jour · Communiqué de l’entreprise · Annonce officielle</div>
+<a href="#" style="font-weight: 600; text-decoration: none; color: var(--ink);">Dassault Systèmes annonce de nouveaux contrats avec des industriels européens ↗</a>
+<div style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">Le groupe a présenté plusieurs accords pluriannuels dans l’aéronautique et l’automobile.</div>
+</div>
+</li><li style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: flex-start;">
+<div style="flex: none; width: 56px; height: 56px; border-radius: var(--radius-md); background: var(--buy-soft); color: var(--buy); display: flex; flex-direction: column; align-items: center; justify-content: center;"><span style="font-size: 18px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums;">64</span><span style="font-size: 10px; line-height: 12px; font-weight: 600;">/ 100</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+<div style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Il y a 2 jours · Presse économique · Actualité</div>
+<a href="#" style="font-weight: 600; text-decoration: none; color: var(--ink);">Les éditeurs de logiciels européens reprennent des couleurs ↗</a>
+<div style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">Le secteur profite d’un regain d’intérêt des investisseurs après plusieurs semaines de baisse.</div>
+</div>
+</li><li style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: flex-start;">
+<div style="flex: none; width: 56px; height: 56px; border-radius: var(--radius-md); background: var(--sell-soft); color: var(--sell); display: flex; flex-direction: column; align-items: center; justify-content: center;"><span style="font-size: 18px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums;">30</span><span style="font-size: 10px; line-height: 12px; font-weight: 600;">/ 100</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+<div style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Il y a 4 jours · Agence de presse · Actualité</div>
+<a href="#" style="font-weight: 600; text-decoration: none; color: var(--ink);">Un analyste abaisse son objectif de cours sur Dassault Systèmes ↗</a>
+<div style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">L’analyste reste prudent sur la croissance à court terme de la division santé.</div>
+</div>
+</li><li style="display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: flex-start;">
+<div style="flex: none; width: 56px; height: 56px; border-radius: var(--radius-md); background: var(--hold-soft); color: var(--hold); display: flex; flex-direction: column; align-items: center; justify-content: center;"><span style="font-size: 18px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums;">58</span><span style="font-size: 10px; line-height: 12px; font-weight: 600;">/ 100</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+<div style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Il y a 6 jours · Communiqué de l’entreprise · Annonce officielle</div>
+<a href="#" style="font-weight: 600; text-decoration: none; color: var(--ink);">Dassault Systèmes confirme ses objectifs annuels ↗</a>
+<div style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">La direction maintient ses prévisions de chiffre d’affaires pour l’exercice en cours.</div>
+</div>
+</li></ul>
+<p style="margin: 12px 0 0; color: var(--ink-muted); font-size: 13px; line-height: 18px;">Note de 0 (très défavorable) à 100 (très favorable), calculée sur le titre et le résumé de l’article. Les liens ouvrent l’article dans un nouvel onglet.</p>
+</section>
+<aside style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+<section style="background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px;"><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Ratios financiers</h2><span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Note 57,4 / 100</span></div>
+<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 15px; line-height: 22px;">
+<thead><tr><th style="padding: 10px 12px; text-align: left; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--line);">Critère</th><th style="padding: 10px 12px; text-align: right; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--line);">2024</th><th style="padding: 10px 12px; text-align: right; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--line);">2025</th><th style="padding: 10px 12px; text-align: right; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); border-bottom: 1px solid var(--line);">Évolution</th></tr></thead>
+<tbody><tr><td style="padding: 12px; border-bottom: 1px solid var(--line); font-weight: 500;">Chiffre d’affaires</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums;">6,21 Md€</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;">6,65 Md€</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; color: var(--buy); font-weight: 600;">+7,1 %</td></tr><tr><td style="padding: 12px; border-bottom: 1px solid var(--line); font-weight: 500;">Dividende par action</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums;">0,25 €</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;">0,27 €</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; color: var(--buy); font-weight: 600;">+8,0 %</td></tr><tr><td style="padding: 12px; border-bottom: 1px solid var(--line); font-weight: 500;">Rendement du dividende</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums;">0,9 %</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;">0,8 %</td><td style="padding: 12px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; color: var(--sell); font-weight: 600;">moyenne des 5 : 2,6 %</td></tr></tbody></table></div>
+<span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Sources : rapports annuels via yfinance, mis à jour une fois par an.</span>
+</section>
+<section style="background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+<h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Ce qui compte dans le conseil</h2>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; flex-direction: column; gap: 4px;"><div style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px;"><span style="font-weight: 600;">Informations</span><span style="font-variant-numeric: tabular-nums; color: var(--ink-muted);">poids 40 % · note 66,9</span></div><div style="height: 6px; border-radius: 3px; background: var(--surface-sunken);"><div style="height: 6px; border-radius: 3px; width: 40%; background: var(--brand);"></div></div></div><div style="display: flex; flex-direction: column; gap: 4px;"><div style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px;"><span style="font-weight: 600;">Analyse graphique</span><span style="font-variant-numeric: tabular-nums; color: var(--ink-muted);">poids 25 % · note 60,1</span></div><div style="height: 6px; border-radius: 3px; background: var(--surface-sunken);"><div style="height: 6px; border-radius: 3px; width: 25%; background: var(--brand);"></div></div></div><div style="display: flex; flex-direction: column; gap: 4px;"><div style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px;"><span style="font-weight: 600;">Ratios</span><span style="font-variant-numeric: tabular-nums; color: var(--ink-muted);">poids 25 % · note 57,4</span></div><div style="height: 6px; border-radius: 3px; background: var(--surface-sunken);"><div style="height: 6px; border-radius: 3px; width: 25%; background: var(--brand);"></div></div></div><div style="display: flex; flex-direction: column; gap: 4px;"><div style="display: flex; justify-content: space-between; font-size: 13px; line-height: 18px;"><span style="font-weight: 600;">Hasard</span><span style="font-variant-numeric: tabular-nums; color: var(--ink-muted);">poids 10 % · note 37,2</span></div><div style="height: 6px; border-radius: 3px; background: var(--surface-sunken);"><div style="height: 6px; border-radius: 3px; width: 10%; background: var(--brand);"></div></div></div>
+</div>
+<span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Le hasard ne peut déplacer la note que de 5 points au plus.</span>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1180}}'>
+class Component extends DCLogic {
+renderVals() {
+return { yes: true, gCur: undefined, iCur: 'page', fd: -1.8, fc: 0.7, ff: 3.2, pos: 51150.32 };
+}
+}
+</script>
+</body>
+</html>
