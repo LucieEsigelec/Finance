@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accueil — Bienvenue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/pf500/tokens.css">
+<link rel="stylesheet" href="ds/pf500/components/bundle.css">
+<script src="ds/pf500/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--ink);font-family:var(--font-sans)}
+a{color:var(--brand)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: var(--surface-page); color: var(--ink); font-family: var(--font-sans);">
+<dc-import name="NavBar" active="accueil" hint-size="100%,64px"></dc-import>
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; gap: 32px; padding-top: 48px;">
+<section style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Mercredi 25 novembre 2026</span>
+<h1 style="margin: 0; font-size: 40px; line-height: 48px; font-weight: 700; letter-spacing: -.02em;">Bonjour M. X,</h1>
+<p style="margin: 0; font-size: 20px; line-height: 28px; color: var(--ink-muted);">Bienvenue sur votre portefeuille de 500 000 €. Voici où vous en êtes cette semaine.</p>
+</div>
+<div style="display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: var(--radius-md); background: var(--buy-soft); color: var(--buy); font-size: 13px; line-height: 18px; font-weight: 600;">
+<span aria-hidden="true">●</span> Données à jour · 25 nov., 18:02
+</div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+<x-import component-from-global-scope="Pf500.KpiCard" label="Valeur du portefeuille" value="503 067 €" delta="{{d0}}" delta-label="depuis le départ"></x-import>
+<x-import component-from-global-scope="Pf500.KpiCard" label="Cette semaine" value="+0,6 %" hint="Aucune alerte de perte"></x-import>
+<x-import component-from-global-scope="Pf500.KpiCard" label="Cash disponible" value="441 929,20 €" hint="87,8 % du capital"></x-import>
+</div>
+<section style="background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;"><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Les conseils de la semaine</h2><a href="Main.dc.html" style="font-size: 15px; font-weight: 500; text-decoration: none;">Voir le détail →</a></div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px;"><div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: var(--surface-sunken);"><x-import component-from-global-scope="Pf500.DecisionBadge" decision="ACHAT" style="align-self: flex-start;"></x-import><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;"><li style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-dsy);" aria-hidden="true"></span><a href="FicheAction.dc.html" style="color: var(--ink); text-decoration: none; font-weight: 500;">Dassault Systèmes</a><span class="pf-mono">DSY.PA</span></li><li style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-ai);" aria-hidden="true"></span><a href="FicheAction.dc.html" style="color: var(--ink); text-decoration: none; font-weight: 500;">Air Liquide</a><span class="pf-mono">AI.PA</span></li></ul></div><div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: var(--surface-sunken);"><x-import component-from-global-scope="Pf500.DecisionBadge" decision="RIEN" style="align-self: flex-start;"></x-import><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;"><li style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-tte);" aria-hidden="true"></span><a href="FicheAction.dc.html" style="color: var(--ink); text-decoration: none; font-weight: 500;">TotalEnergies</a><span class="pf-mono">TTE.PA</span></li><li style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-rms);" aria-hidden="true"></span><a href="FicheAction.dc.html" style="color: var(--ink); text-decoration: none; font-weight: 500;">Hermès</a><span class="pf-mono">RMS.PA</span></li></ul></div><div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: var(--surface-sunken);"><x-import component-from-global-scope="Pf500.DecisionBadge" decision="VENTE" style="align-self: flex-start;"></x-import><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;"><li style="display: flex; align-items: center; gap: 10px;"><span style="width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-cap);" aria-hidden="true"></span><a href="FicheAction.dc.html" style="color: var(--ink); text-decoration: none; font-weight: 500;">Capgemini</a><span class="pf-mono">CAP.PA</span></li></ul></div></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px;">
+<h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Que voulez-vous faire ?</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 16px;"><a href="Main.dc.html" style="flex: 1 1 260px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 20px; display: flex; gap: 16px; align-items: flex-start; text-decoration: none; color: var(--ink);">
+<span style="flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 18px; line-height: 26px; font-weight: 600;">Tableau de bord →</span><span style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">Valeur, alerte de perte et conseil sur vos 5 actions.</span></span></a><a href="Simulateur.dc.html" style="flex: 1 1 260px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 20px; display: flex; gap: 16px; align-items: flex-start; text-decoration: none; color: var(--ink);">
+<span style="flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="M8 8h8"></path><path d="M8 12h2"></path><path d="M14 12h2"></path><path d="M8 16h2"></path><path d="M14 16h2"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 18px; line-height: 26px; font-weight: 600;">Simulateur →</span><span style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">Testez un achat ou une vente et obtenez un conseil argumenté.</span></span></a><a href="Historique.dc.html" style="flex: 1 1 260px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 20px; display: flex; gap: 16px; align-items: flex-start; text-decoration: none; color: var(--ink);">
+<span style="flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 18px; line-height: 26px; font-weight: 600;">Historique →</span><span style="font-size: 15px; line-height: 22px; color: var(--ink-muted);">Vos opérations et la performance du portefeuille.</span></span></a></div>
+</section>
+<p style="margin: 0; color: var(--ink-muted); font-size: 13px; line-height: 18px;">Vos objectifs : au moins +10 % par semaine · perte maximale acceptée : −10 % par semaine. Les conseils sont une aide à la décision : vous restez seul décideur.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1040}}'>
+class Component extends DCLogic {
+renderVals() {
+return { d0: 0.61 };
+}
+}
+</script>
+</body>
+</html>

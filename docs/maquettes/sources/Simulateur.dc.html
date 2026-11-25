@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Simulateur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/pf500/tokens.css">
+<link rel="stylesheet" href="ds/pf500/components/bundle.css">
+<script src="ds/pf500/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--ink);font-family:var(--font-sans)}
+a{color:var(--brand)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: var(--surface-page); color: var(--ink); font-family: var(--font-sans);">
+<dc-import name="NavBar" active="simulateur" hint-size="100%,64px"></dc-import>
+<main style="max-width: 1280px; margin: 0 auto; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 4px;"><h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.01em;">Simulateur</h1><span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Choisissez une ou plusieurs actions, un montant et une opération : l’application vous donne son conseil avant que vous décidiez.</span></div>
+<div style="display: flex; gap: 24px; flex-wrap: wrap;">
+<div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Cash disponible</span><span style="font-weight: 600; font-variant-numeric: tabular-nums;">441 929,20 €</span></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted);">Perte de la semaine</span><span style="font-weight: 600; color: var(--buy); font-variant-numeric: tabular-nums;">+0,6 % · limite −10 %</span></div>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+<section aria-labelledby="sim-title" style="flex: 1 1 360px; min-width: 0; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<h2 id="sim-title" style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Votre opération</h2>
+<span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Rien n'est enregistré avant votre validation.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<span style="font-size: 13px; line-height: 18px; font-weight: 600;">Actions</span>
+<x-import component-from-global-scope="Pf500.StockCheckbox" name="Dassault Systèmes" ticker="DSY.PA" color="chart-dsy"></x-import>
+<x-import component-from-global-scope="Pf500.StockCheckbox" name="TotalEnergies" ticker="TTE.PA" color="chart-tte"></x-import>
+<x-import component-from-global-scope="Pf500.StockCheckbox" name="Capgemini" ticker="CAP.PA" color="chart-cap"></x-import>
+<x-import component-from-global-scope="Pf500.StockCheckbox" name="Hermès" ticker="RMS.PA" color="chart-rms"></x-import>
+<x-import component-from-global-scope="Pf500.StockCheckbox" name="Air Liquide" ticker="AI.PA" color="chart-ai" checked="{{yes}}"></x-import>
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+<legend style="font-size: 13px; line-height: 18px; font-weight: 600; padding: 0; margin-bottom: 8px;">Opération</legend>
+<div style="display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-sunken);">
+<label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 7px; font-weight: 600; cursor: pointer; background: var(--surface-card); color: var(--ink); box-shadow: var(--shadow-card);"><input type="radio" name="op" checked="{{opBuy}}" style="accent-color: var(--brand); margin: 0;"> Achat</label>
+<label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 7px; font-weight: 500; cursor: pointer; color: var(--ink-muted);"><input type="radio" name="op" checked="{{opSell}}" style="accent-color: var(--brand); margin: 0;"> Vente</label>
+</div>
+</fieldset>
+<x-import component-from-global-scope="Pf500.AmountInput" id="montant" label="Montant à investir" value="20 000" cash="{{cash}}"></x-import>
+<x-import component-from-global-scope="Pf500.Button" variant="primary" style="align-self: flex-start;">Simuler</x-import>
+</section>
+
+<section aria-label="Résultat de la simulation" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;"><h2 style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600;">Conseil pour votre opération</h2><span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Simulation du 25 nov. 2026 à 18:05 · rien n’est encore enregistré</span></div>
+<x-import component-from-global-scope="Pf500.AdviceCard" nom="Air Liquide" ticker="AI.PA" cours="{{cours}}" conseil="ACHAT" verdict="VALIDER" quantite="{{qte}}" montant="{{montant}}" reliquat="{{reliquat}}" dividende="{{dividende}}" prevision="{{prevision}}" raisons="{{raisons}}" style="display: block;">
+<div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+<x-import component-from-global-scope="Pf500.Button">Annuler</x-import>
+<a href="Confirmation.dc.html" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: var(--radius-md); background: var(--buy); color: var(--on-buy); font-weight: 600; font-size: 15px; text-decoration: none;">Valider l’achat</a>
+</div>
+</x-import>
+<div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 13px; line-height: 18px;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px; color: var(--brand);"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+<span>Le conseil est une aide : vous restez libre de valider ou non. Le nombre d’actions est arrondi à l’entier inférieur, le reste du montant reste en cash.</span>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1240}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+  yes: true, opBuy: true, opSell: false,
+  d0: 0.61, alertVar: -10.4,
+  cash: 441929.2,
+  cours: 168.40, qte: 118, montant: 19871.20, reliquat: 128.80, dividende: 389.40,
+  prevision: { defavorable: -1.4, central: 0.8, favorable: 3.0 },
+  raisons: ['Informations (poids majoritaire) : résultats trimestriels jugés solides par la presse.', 'Analyse graphique : le cours rebondit sur le bas de sa fourchette habituelle.', 'Ratios : chiffre d’affaires en hausse de 4 % sur un an.'],
+  rows: [{"name": "Dassault Systèmes", "ticker": "DSY.PA", "color": "chart-dsy", "cours": "35,62 €", "var": "+1,2 %", "up": 1, "held": "1 436", "decision": "ACHAT", "prev": "+0,7 %", "pu": 1, "div": "416,44 €", "varStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "prevStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "dot": "width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-dsy);"}, {"name": "TotalEnergies", "ticker": "TTE.PA", "color": "chart-tte", "cours": "58,75 €", "var": "+0,4 %", "up": 1, "held": "170", "decision": "RIEN", "prev": "+0,2 %", "pu": 1, "div": "544,00 €", "varStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "prevStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "dot": "width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-tte);"}, {"name": "Capgemini", "ticker": "CAP.PA", "color": "chart-cap", "cours": "142,30 €", "var": "−0,8 %", "up": -1, "held": "—", "decision": "VENTE", "prev": "−0,9 %", "pu": -1, "div": "—", "varStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--sell);", "prevStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--sell);", "dot": "width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-cap);"}, {"name": "Hermès", "ticker": "RMS.PA", "color": "chart-rms", "cours": "2 218,00 €", "var": "−1,5 %", "up": -1, "held": "—", "decision": "RIEN", "prev": "−0,3 %", "pu": -1, "div": "—", "varStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--sell);", "prevStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--sell);", "dot": "width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-rms);"}, {"name": "Air Liquide", "ticker": "AI.PA", "color": "chart-ai", "cours": "168,40 €", "var": "+0,3 %", "up": 1, "held": "—", "decision": "ACHAT", "prev": "+0,8 %", "pu": 1, "div": "—", "varStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "prevStyle": "font-variant-numeric: tabular-nums;text-align: right; font-weight: 600; color: var(--buy);", "dot": "width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--chart-ai);"}]
+};
+}
+}
+</script>
+</body>
+</html>

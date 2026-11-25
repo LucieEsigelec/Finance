@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Barre de navigation</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/pf500/tokens.css">
+<link rel="stylesheet" href="ds/pf500/components/bundle.css">
+<script src="ds/pf500/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--ink);font-family:var(--font-sans)}
+a{color:var(--brand)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<header style="background: var(--surface-card); border-bottom: 1px solid var(--line); font-family: var(--font-sans); color: var(--ink);">
+<div style="max-width: 1280px; margin: 0 auto; padding: 0 24px; min-height: 64px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px;">
+<a href="Accueil.dc.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 17px; letter-spacing: -.01em;">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="9" width="4" height="12" rx="2" style="fill: var(--brand)"></rect><rect x="9" y="4" width="4" height="17" rx="2" style="fill: var(--brand)"></rect><rect x="17" y="1" width="4" height="20" rx="2" style="fill: var(--brand)"></rect></svg>
+Portefeuille 500k</a>
+<nav aria-label="Navigation principale" style="display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1;">
+<a href="Accueil.dc.html" style="{{homeStyle}}">Accueil</a>
+<a href="Main.dc.html" style="{{dashStyle}}">Tableau de bord</a>
+<a href="Simulateur.dc.html" style="{{simStyle}}">Simulateur</a>
+<a href="FicheAction.dc.html" style="{{actionStyle}}">Actions</a>
+<a href="Historique.dc.html" style="{{histStyle}}">Historique</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 12px;">
+<span style="color: var(--ink-muted); font-size: 13px; line-height: 18px;">Données du 25 nov. 2026, 18:02</span>
+<x-import component-from-global-scope="Pf500.Button" size="sm">Actualiser les données</x-import>
+</div>
+</div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active": {"editor": "enum", "options": ["accueil", "dashboard", "simulateur", "action", "historique"], "default": "dashboard"}, "$preview": {"width": 1440, "height": 64}}'>
+class Component extends DCLogic {
+renderVals() {
+const a = this.props.active ?? 'dashboard';
+const base = 'text-decoration: none; font-size: 15px; font-weight: 500; padding: 8px 12px; border-radius: var(--radius-md); ';
+const on = base + 'color: var(--brand); background: var(--brand-soft); font-weight: 600;';
+const off = base + 'color: var(--ink-muted);';
+return { homeStyle: a === 'accueil' ? on : off, simStyle: a === 'simulateur' ? on : off, dashStyle: a === 'dashboard' ? on : off, actionStyle: a === 'action' ? on : off, histStyle: a === 'historique' ? on : off };
+}
+}
+</script>
+</body>
+</html>
