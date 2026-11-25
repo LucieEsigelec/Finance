@@ -1,111 +1,71 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* Styles globaux — charte graphique (docs/charte, UI §7–8).
+   Les couleurs viennent TOUJOURS des variables de tokens.css : aucune couleur en dur. */
+@import "tailwindcss";
+@import "./styles/tokens.css";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* Thème sombre : data-theme="dark" sur <html> (UI §8.1) */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Branchement des tokens dans Tailwind (équivalent v4 du tailwind.config.js de UI §8.1) */
+@theme inline {
+  --color-page: var(--surface-page);
+  --color-card: var(--surface-card);
+  --color-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
+  --color-buy: var(--buy);
+  --color-buy-soft: var(--buy-soft);
+  --color-on-buy: var(--on-buy);
+  --color-sell: var(--sell);
+  --color-sell-soft: var(--sell-soft);
+  --color-on-sell: var(--on-sell);
+  --color-hold: var(--hold);
+  --color-hold-soft: var(--hold-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-chart-dsy: var(--chart-dsy);
+  --color-chart-tte: var(--chart-tte);
+  --color-chart-cap: var(--chart-cap);
+  --color-chart-rms: var(--chart-rms);
+  --color-chart-ai: var(--chart-ai);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --shadow-card: var(--shadow-card);
+  --shadow-dialog: var(--shadow-dialog);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--surface-page);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
   }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+  h1 { font-size: 24px; line-height: 32px; font-weight: 600; margin: 0; }
+  h2 { font-size: 18px; line-height: 26px; font-weight: 600; margin: 0; }
 }
 
-body {
-  margin: 0;
+@layer components {
+  .card { background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .label-caps { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); }
+  .ticker { font-family: var(--font-mono); font-weight: 500; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+  .num { font-variant-numeric: tabular-nums; }
+  .skeleton { background: var(--surface-sunken); border-radius: var(--radius-md); animation: pulse 1.6s ease-in-out infinite; }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+@keyframes pulse { 50% { opacity: .55; } }

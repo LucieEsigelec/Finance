@@ -189,3 +189,53 @@ Résultat mesuré : environ 1 seconde au premier affichage, quelques millisecond
 | `test_rec3_…` | Chaque fiche a ses raisons (2 à 4) et son onglet Infos |
 | `test_rec4_…` | L'alerte passe au rouge à −10 % et plus aucun achat n'est conseillé |
 | `test_v14_…` | Si le cash ne suffit plus au moment de valider : erreur 400 et rien n'est écrit |
+
+## 7. L'interface (`frontend/`)
+
+### 7.1 Les outils
+
+React 19 (le squelette de l'équipe), Vite 8 pour lancer et construire, Tailwind CSS 4 pour la mise en forme, React Router pour la navigation, TradingView Lightweight Charts pour les cours, Recharts pour la courbe de l'historique, Lucide pour les icônes.
+
+### 7.2 Comment c'est rangé
+
+```
+frontend/src/
+├── main.jsx              point de départ : routeur, messages (Toast), données du tableau de bord
+├── App.jsx               les routes : /, /tableau-de-bord, /simulateur, /action/:ticker, /historique
+├── index.css             Tailwind + branchement des couleurs de la charte
+├── styles/tokens.css     copie de docs/charte/tokens.css (couleurs, espacements, polices)
+├── api/client.js         SEUL fichier qui appelle l'API
+├── lib/                  formats français (format.js), les 5 actions et leurs couleurs (stocks.js), verdicts
+├── context/              données partagées : tableau de bord (DashboardContext), messages (ToastContext)
+├── components/ui/        les 8 composants de la charte (Button, DecisionBadge, KpiCard, AlertBanner,
+│                         AmountInput, StockCheckbox, ForecastBar, AdviceCard)
+├── components/layout/    cadre commun : AppLayout, NavBar, Toast, LoadingState, ErrorState, Disclaimer
+├── components/           blocs d'écran : StocksTable, RiskIndicator, SimulatorPanel, ConfirmDialog, stock/…
+└── pages/                AccueilPage, DashboardPage, SimulatorPage, StockDetailPage, HistoryPage
+```
+
+### 7.3 Les règles suivies
+
+- **L'interface ne parle qu'à l'API**, par `api/client.js` ; son adresse vient de `VITE_API_URL`. Aucune clé n'est dans le frontend.
+- **Aucune couleur en dur** : toutes viennent des variables de `tokens.css`, reliées à Tailwind dans `index.css` (`bg-buy-soft`, `text-sell`…). Les graphiques lisent ces variables avec `cssVar()`.
+- **Formats français** (`lib/format.js`) : `49 972,80 €`, `+3,2 %`, `−1,8 %` avec le vrai signe moins, `25 nov. 2026, 18:02`.
+- **Un conseil a toujours son signe et son mot** : ▲ ACHAT, ▼ VENTE, ■ RIEN (`DecisionBadge`).
+- **La mention « outil d'aide à la décision… »** (`Disclaimer`) est sur chaque écran qui affiche un conseil, une prévision ou un dividende.
+
+### 7.4 Comment les données circulent
+
+- **Tableau de bord partagé** : `DashboardContext` appelle `GET /api/dashboard` une fois à l'ouverture. La même réponse sert à l'accueil, au tableau de bord, à l'en-tête du simulateur, à la date de la NavBar et au bandeau d'alerte. Elle est redemandée après une opération ou une actualisation.
+- **Bandeau d'alerte** : `AppLayout` l'affiche sous la NavBar, sur toutes les pages, dès que le niveau n'est pas AUCUN.
+- **Fiche action** : un seul appel `GET /api/stocks/{ticker}` ; les onglets, les périodes (1M à 1A) et les cases des indicateurs ne changent que l'affichage. Le simulateur de dividende calcule dans le navigateur.
+- **Historique** : chaque changement de période, de titre ou de page rappelle `GET /api/portfolio/history`.
+
+### 7.5 Le seul chemin qui enregistre : le simulateur
+
+1. `SimulatorPanel` (le formulaire) : cases des 5 actions, Achat / Vente, montant. Un montant vide ou nul est refusé dans le navigateur.
+2. « Simuler » → `POST /api/simulate` → une `AdviceCard` par titre (conseil, verdict, chiffres, 3 scénarios, raisons). Rien n'est enregistré.
+3. « Valider l'achat » (désactivé si l'opération est refusée) → `ConfirmDialog` avec le récapitulatif et le cash après l'opération.
+4. « Valider » dans la fenêtre → `POST /api/transactions`. Succès : message, rechargement du tableau de bord, retour au tableau de bord. Refus (400) : message rouge, la fenêtre reste ouverte, rien n'est écrit.
+
+### 7.6 Vérifié
+
+`npm run build` et `npm run lint` passent. Le parcours a été joué automatiquement dans un vrai navigateur (Chromium piloté par Playwright) : simulation, opération refusée avec bouton désactivé, fenêtre de confirmation puis annulation (sans rien enregistrer), montant vide, onglets de la fiche, action inconnue.
