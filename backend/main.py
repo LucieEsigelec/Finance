@@ -8,8 +8,13 @@ En bref :
 - ``GET /api/health`` répond « l'API tourne ». Elle ne lit pas la base : Render s'en
   sert pour surveiller le service, et on peut l'appeler pour réveiller l'API.
 
+Les 6 routes métier du DCT §6 sont dans ``routers/`` :
+- ``dashboard.py`` : GET /api/dashboard
+- ``simulator.py`` : POST /api/simulate
+- ``transactions.py`` : POST /api/transactions, GET /api/portfolio/history
+- ``stocks.py`` : GET /api/stocks/{ticker}, POST /api/market/refresh
+
 Lancement : ``python -m uvicorn main:app --reload --port 8000`` depuis ``backend/``.
-Les routes métier (DCT §6) sont ajoutées à l'étape API.
 """
 
 from __future__ import annotations
@@ -20,8 +25,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import config
+from routers import dashboard, simulator, stocks, transactions
 
-API_VERSION = "0.1.0"
+API_VERSION = "0.2.0"
 
 
 def create_app(settings: config.Settings | None = None) -> FastAPI:
@@ -52,6 +58,8 @@ def create_app(settings: config.Settings | None = None) -> FastAPI:
             "heure_serveur": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
 
+    for module in (dashboard, simulator, transactions, stocks):
+        app.include_router(module.router)
     return app
 
 

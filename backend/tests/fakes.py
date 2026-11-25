@@ -50,6 +50,7 @@ class FakeRepository:
         self.articles: list[dict[str, Any]] = []
         self.scores: list[dict[str, Any]] = []
         self.transactions: list[dict[str, Any]] = []
+        self.clock: datetime | None = None  # heure fixe des opérations enregistrées (tests)
         self.portfolio = {
             "id": str(uuid.uuid4()), "capital_initial": Decimal("500000.00"), "cash_disponible": Decimal(cash),
             "val_semaine_prec": Decimal("500000.00"), "date_ref_semaine": ref_day, "nom_client": None,
@@ -153,7 +154,7 @@ class FakeRepository:
             "id": str(uuid.uuid4()), "portefeuille_id": portfolio_id, "action_id": action_id,
             "ticker": action["ticker"], "nom": action["nom"], "type_op": operation,
             "quantite_entiere": quantity, "prix_unitaire": price, "montant_total": quantity * price,
-            "conseil_algo": conseil, "date_execution": when or datetime.now(timezone.utc),
+            "conseil_algo": conseil, "date_execution": when or self.clock or datetime.now(timezone.utc),
         }
         self.transactions.append(tx)
         sign = -1 if operation == "ACHAT" else 1

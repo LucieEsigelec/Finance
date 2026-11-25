@@ -147,6 +147,8 @@ def score_stock(
         "prevision": prevision,
         "dividende_par_action": None if dividende_par_action is None else str(dividende_par_action),
         "cours": tech.details.get("cours"),
+        "variation_jour_pct": day_change_pct(past),
+        "date_cours": None if past.empty else past["date_seance"].iloc[-1].isoformat(),
     }
     return {
         "score_global": round(note, 2),
@@ -154,6 +156,14 @@ def score_stock(
         "prevision_semaine_pct": None if prevision is None else prevision["central"],
         "details_piliers": json_safe(details),
     }
+
+
+def day_change_pct(history: pd.DataFrame) -> float | None:
+    """Variation entre les deux dernières clôtures, en %."""
+    if history is None or len(history) < 2:
+        return None
+    last, previous = history["close"].iloc[-1], history["close"].iloc[-2]
+    return round((float(last) / float(previous) - 1) * 100, 2) if previous else None
 
 
 def monday_of(day: date) -> date:
