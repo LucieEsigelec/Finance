@@ -183,7 +183,7 @@ Codes : `400` règle de gestion violée (cash insuffisant, vente > position, con
 | Ratios | CA, dividende par action, rendement ; importances 7/6/6 ; dividende estimé = actions × dividende attendu | §5 |
 | Hasard | note = 100 × u, graine = SHA-256(ticker + semaine ISO), enregistrée ; influence ≤ 5 points | §6 |
 | Poids | Infos **40 %**, Graphique 25 %, Ratios 25 %, Hasard 10 % ; **RG-04 vérifié au démarrage** | §7.1 |
-| Décision | note finale `≥ 60` → ACHAT ; `≤ 40` → VENTE ; sinon RIEN | §7.2 |
+| Décision | note finale `≥ 60` → ACHAT ; `≤ 40` → VENTE ; sinon RIEN (réglables par `SEUIL_ACHAT` / `SEUIL_VENTE` ; essai 55 / 45 en ligne, D-10) | §7.2 |
 | Raisons | 2 à 4 phrases claires, une par pilier important + point de vigilance ; hasard jamais cité | §8 |
 | Prévision | central = μ + (note − 50) / 50 × σ ; favorable / défavorable = central ± σ (52 semaines) | §9 |
 | Simulateur | `q = floor(M / P)`, reste en cash ; pas de frais ; champ `verdict` en plus de `conseil` | §10 |
