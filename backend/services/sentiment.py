@@ -26,6 +26,8 @@ POSITIVE = {
     "optimiste", "optimisme", "benefice", "benefices", "gagne", "gain", "gains", "acquisition",
     "renforce", "achat", "surperforme", "favorable", "favorables", "dynamique", "embellie",
     "couleurs", "relance", "partenariat", "innovation", "lance", "confirme", "ameliore", "amelioration",
+    "grappille", "avance", "avancent", "envole", "salue", "saluee", "accelere", "accelerer", "investit",
+    "investir", "remporte", "remportent", "prime", "recompense", "plebiscite",
     # anglais
     "rise", "rises", "rising", "gain", "gains", "growth", "grows", "record", "jump", "jumps", "surge",
     "surges", "beat", "beats", "strong", "upgrade", "upgrades", "upgraded", "raise", "raises", "raised",
@@ -41,6 +43,8 @@ NEGATIVE = {
     "inquietudes", "risque", "risques", "menace", "menaces", "enquete", "amende", "greve", "licenciement",
     "licenciements", "suppression", "suppressions", "ralentissement", "ralentit", "difficile",
     "difficultes", "crise", "vente", "sanction", "sanctions", "litige", "proces", "defavorable",
+    "cede", "cedent", "enfonce", "repli", "glisse", "lache", "plombe", "sanctionne",
+    "baissiere", "baissier", "rechute", "trebuche", "devisse", "penalise", "alerte",
     # anglais
     "fall", "falls", "falling", "drop", "drops", "decline", "declines", "loss", "losses", "warning",
     "warns", "miss", "misses", "weak", "downgrade", "downgrades", "downgraded", "cut", "cuts", "lawsuit",

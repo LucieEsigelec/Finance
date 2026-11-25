@@ -98,5 +98,40 @@ Fait baisser tous les cours d'un même pourcentage, en mémoire, et regarde quan
 | `test_services.py` | Les autres règles des calculs : seuils, refus du simulateur, formats français, raisons… |
 | `test_config.py` | Les réglages et RG-04 |
 | `test_main.py` | L'API de base et la connexion |
+| `test_refresh.py` | La collecte et l'actualisation, avec la fausse base de `fakes.py` |
 
 Lancement depuis `backend/` : `python -m pytest`. La couverture doit rester au-dessus de 70 %.
+
+## 5. La collecte et l'actualisation
+
+### 5.1 Qui fait quoi
+
+| Fichier | Rôle |
+|---|---|
+| `db/repository.py` | **Le seul endroit qui parle à Supabase.** Il traduit « donne-moi les cours de DSY.PA » ou « enregistre ces notes » en requêtes. Le reste du code ne connaît pas Supabase. |
+| `services/market_data.py` | Va chercher les données à l'extérieur : cours et dividendes (yfinance), chiffre d'affaires (yfinance), actualités (Google News en RSS et NewsAPI). |
+| `services/refresh_service.py` | Le chef d'orchestre de l'actualisation : collecter, enregistrer, recalculer, ouvrir la semaine. |
+| `tools/refresh.py` | Lance une actualisation à la main : `python -m tools.refresh`. |
+
+### 5.2 Une actualisation, pas à pas
+
+Pour chacune des 5 actions :
+
+1. **Cours** : la première fois, on charge 2 ans de cours (il en faut au moins 200 séances pour la moyenne sur 200 jours, et 52 semaines pour la prévision). Ensuite, on ne recharge que les 7 derniers jours. L'enregistrement remplace une séance déjà connue au lieu de la dupliquer.
+2. **Ratios** : chiffre d'affaires des deux derniers exercices et dividende par action de chaque année. Un exercice déjà en base est mis à jour, pas dupliqué.
+3. **Actualités** : celles des 7 derniers jours. On ne garde que les articles qui **citent vraiment l'entreprise** (son nom dans le titre ou le résumé) et qui ne sont pas de simples pages de cotation. Chaque article reçoit sa note d'impact tout de suite. Un article déjà connu (même lien ou même titre) n'est pas ajouté une deuxième fois.
+4. **Calcul** : les 4 notes, la note finale, le conseil, les raisons et la prévision (fonction `score_stock`). Une nouvelle ligne est ajoutée dans `scores_actions` : on garde ainsi l'historique de tous les conseils.
+5. **Mise à jour** du dernier cours et du dividende attendu dans `actions`.
+
+Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week_if_needed`) : la valeur du portefeuille au dernier cours de la semaine précédente devient la référence de l'alerte de perte.
+
+**Si une source est en panne**, l'actualisation continue avec ce qui est déjà en base, et l'erreur est notée dans le compte rendu.
+
+### 5.3 Deux précisions de calcul
+
+- **Dividende annuel** : certaines entreprises versent 4 fois par an (TotalEnergies). Si on additionne simplement les versements d'une année civile, un versement daté du 2 janvier ou du 31 décembre fausse tout (+35 % au lieu de +8 %). On prend donc le versement moyen de l'année × le nombre habituel de versements.
+- **Dividende attendu** (pour le dividende estimé) : la somme des dividendes versés sur les 12 derniers mois.
+
+### 5.4 Les tests sans base ni réseau
+
+`tests/fakes.py` contient une **fausse base en mémoire** (`FakeRepository`) et un **faux collecteur** (`FakeCollector`) qui fabrique 2 ans de cours réalistes. Les tests de `test_refresh.py` vérifient l'actualisation complète sans jamais toucher Supabase ni Internet : 5 conseils enregistrés, pas de doublon quand on relance, survie aux pannes, ouverture de la semaine.
