@@ -70,3 +70,13 @@ def test_module_level_app_uses_env_settings():
 
     assert main.app.title.startswith("Portefeuille 500k")
     assert config.load_settings().cors_origins  # au moins une origine par défaut
+
+
+def test_legacy_import_name_returns_the_shared_client(monkeypatch):
+    sentinel = object()
+    monkeypatch.setattr(supabase_client, "get_client", lambda: sentinel)
+    from db.supabase_client import supabase
+
+    assert supabase is sentinel
+    with pytest.raises(AttributeError):
+        supabase_client.inconnu  # noqa: B018

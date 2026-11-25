@@ -4,6 +4,10 @@ En bref : ``get_client()`` crée la connexion la première fois qu'on en a besoi
 puis réutilise toujours la même. Seul le backend se connecte à la base, avec la clé
 secrète ``SUPABASE_KEY`` lue dans ``backend/.env`` (CLAUDE.md §6.2) ; cette clé n'est
 jamais affichée, ni dans un message d'erreur, ni dans un log.
+
+On peut aussi écrire ``from db.supabase_client import supabase`` (forme du commit de
+Lucie) : la connexion est alors créée à ce moment-là. Elle n'est jamais créée au simple
+chargement du module, pour que les tests tournent sans fichier ``.env`` (GitHub Actions).
 """
 
 from __future__ import annotations
@@ -29,3 +33,10 @@ def get_client() -> Client:
             "(voir backend/.env.example)"
         )
     return create_client(settings.supabase_url, settings.supabase_key)
+
+
+def __getattr__(name: str):
+    """``supabase`` = la connexion partagée, créée au premier accès."""
+    if name == "supabase":
+        return get_client()
+    raise AttributeError(name)
