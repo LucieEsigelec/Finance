@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from statistics import mean
@@ -198,44 +199,56 @@ def open_week_if_needed(repo, today: date, histories: Mapping[str, pd.DataFrame]
     return {"val_semaine_prec": str(value), "date_ref_semaine": monday.isoformat()}
 
 
+def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now: datetime, news_api_key: str):
+    """Collecte d'UNE action (cours, ratios, actualités). Lancée en parallèle pour les 5."""
+    ticker, action_id = action["ticker"], action["id"]
+    counts = {"cours": 0, "ratios": 0, "actualites": 0}
+    errors: list[str] = []
+
+    last = repo.last_history_date(action_id)
+    try:
+        rows = collector.history(ticker, None if last is None else last - timedelta(days=7))
+        counts["cours"] = repo.upsert_history([{**r, "action_id": action_id} for r in rows])
+    except Exception as error:
+        errors.append(f"{ticker} cours : {type(error).__name__}: {error}")
+    history = repo.get_history(action_id)
+
+    dividend = action.get("dividende_estime") or None
+    try:
+        fundamentals = collector.fundamentals(ticker, history, now.date())
+        rows = [{**r, "action_id": action_id} for r in fundamentals.exercices]
+        counts["ratios"] = repo.save_ratios(action_id, rows)
+        dividend = fundamentals.dividende_12_mois or dividend
+    except Exception as error:
+        errors.append(f"{ticker} ratios : {type(error).__name__}: {error}")
+
+    try:
+        articles, news_errors = collector.news(ticker, now, news_api_key)
+        errors += [f"{ticker} {e}" for e in news_errors]
+        since = now - timedelta(days=config.INFO_FENETRE_JOURS)
+        counts["actualites"] = repo.insert_missing_articles(action_id, articles, since)
+    except Exception as error:
+        errors.append(f"{ticker} actualités : {type(error).__name__}: {error}")
+
+    price = float(history["close"].iloc[-1]) if not history.empty else _num(action.get("dernier_cours"))
+    gathered = {"action": action, "history": history, "dividend": dividend, "price": price}
+    return ticker, counts, errors, gathered
+
+
 def refresh(repo, collector: MarketCollector, now: datetime | None = None, news_api_key: str = "") -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     today = now.date()
     report: dict[str, Any] = {"horodatage": now.isoformat(timespec="seconds"), "actions": {}, "erreurs": []}
     gathered: dict[str, dict[str, Any]] = {}
 
-    for action in repo.get_actions():
-        ticker, action_id = action["ticker"], action["id"]
-        counts = {"cours": 0, "ratios": 0, "actualites": 0}
-
-        last = repo.last_history_date(action_id)
-        try:
-            rows = collector.history(ticker, None if last is None else last - timedelta(days=7))
-            counts["cours"] = repo.upsert_history([{**r, "action_id": action_id} for r in rows])
-        except Exception as error:
-            report["erreurs"].append(f"{ticker} cours : {type(error).__name__}: {error}")
-        history = repo.get_history(action_id)
-
-        dividend = action.get("dividende_estime") or None
-        try:
-            fundamentals = collector.fundamentals(ticker, history, today)
-            rows = [{**r, "action_id": action_id} for r in fundamentals.exercices]
-            counts["ratios"] = repo.save_ratios(action_id, rows)
-            dividend = fundamentals.dividende_12_mois or dividend
-        except Exception as error:
-            report["erreurs"].append(f"{ticker} ratios : {type(error).__name__}: {error}")
-
-        try:
-            articles, errors = collector.news(ticker, now, news_api_key)
-            report["erreurs"] += [f"{ticker} {e}" for e in errors]
-            since = now - timedelta(days=config.INFO_FENETRE_JOURS)
-            counts["actualites"] = repo.insert_missing_articles(action_id, articles, since)
-        except Exception as error:
-            report["erreurs"].append(f"{ticker} actualités : {type(error).__name__}: {error}")
-
-        price = float(history["close"].iloc[-1]) if not history.empty else _num(action.get("dernier_cours"))
-        gathered[ticker] = {"action": action, "history": history, "dividend": dividend, "price": price}
+    # Les 5 collectes partent en même temps : ~10 s au lieu de ~40 s (attente réseau).
+    actions = repo.get_actions()
+    with ThreadPoolExecutor(max_workers=max(1, len(actions))) as pool:
+        results = list(pool.map(lambda a: collect_stock(repo, collector, a, now, news_api_key), actions))
+    for ticker, counts, errors, data in sorted(results, key=lambda r: r[0]):
         report["actions"][ticker] = counts
+        report["erreurs"] += errors
+        gathered[ticker] = data
 
     yields = {t: current_yield(g["dividend"], g["price"]) for t, g in gathered.items()}
     available = [y for y in yields.values() if y]

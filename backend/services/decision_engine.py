@@ -404,3 +404,37 @@ def build_reasons(
     if len(reasons) < config.RAISONS_MIN:
         reasons.append("Aucun pilier ne se détache nettement : les signaux se compensent.")
     return reasons[: config.RAISONS_MAX]
+
+
+# ---------------------------------------------------------------------------
+# Conseil relu avec les seuils actuels (D-11)
+# ---------------------------------------------------------------------------
+
+
+def rederive_advice(score: Mapping[str, Any]) -> dict[str, Any]:
+    """Recalcule le conseil et ses raisons à partir de la note enregistrée, avec les seuils
+    ACTUELS de config.py. Un changement de seuils s'applique donc tout de suite, sans
+    attendre la prochaine actualisation. Les notes des piliers ne sont pas recalculées."""
+    details = dict(score.get("details_piliers") or {})
+    try:
+        note = float(score["score_global"])
+        notes = {p: float(details[p]["score"]) for p in ("infos", "tech", "ratios", "hasard")}
+    except (KeyError, TypeError, ValueError):
+        return dict(score)  # ligne ancienne ou incomplète : on garde ce qui est enregistré
+    stored = details.get("ratios") or {}
+    ratios = RatioResult(
+        score=notes["ratios"],
+        criteres=stored.get("criteres") or {},
+        croissance_ca_pct=stored.get("croissance_ca_pct"),
+        croissance_dpa_pct=stored.get("croissance_dpa_pct"),
+        rendement_pct=stored.get("rendement_pct"),
+        moyenne_rendement_pct=stored.get("moyenne_rendement_pct"),
+    )
+    infos = details.get("infos") or {}
+    conseil = decide(note)
+    details["raisons"] = build_reasons(
+        note, conseil, notes, (details.get("tech") or {}).get("signaux") or {},
+        infos.get("faits") or [], ratios, info_message=infos.get("message"),
+    )
+    details["seuils"] = {"achat": config.SEUIL_ACHAT, "vente": config.SEUIL_VENTE}
+    return {**score, "decision": conseil, "details_piliers": details}

@@ -9,8 +9,8 @@ l'historique, le conseil et ses raisons, la prévision en % et en euros, le divi
 les actualités des 7 derniers jours, les ratios des deux derniers exercices et le poids
 de chaque pilier.
 
-**Actualisation** : relance la collecte et le recalcul des conseils. Le bouton est
-public : une seule actualisation toutes les 5 minutes (code 429 sinon).
+**Actualisation** : relance la collecte et le recalcul des conseils, en arrière-plan.
+Le bouton est public : une actualisation toutes les 2 minutes au plus (code 429 sinon).
 """
 
 from __future__ import annotations
@@ -19,11 +19,11 @@ import math
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 
 import config
 from routers.dashboard import stock_row
@@ -205,27 +205,72 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
 
 
 # ---------------------------------------------------------------------------
-# Actualisation (ENF-02)
+# Actualisation (ENF-02, D-11)
 # ---------------------------------------------------------------------------
+# Le bouton rend la main tout de suite (202) : la collecte continue en arrière-plan et
+# l'interface demande où elle en est (GET /api/market/refresh/status). ?attendre=true
+# fait tout d'un coup (tâche planifiée GitHub, tests).
 
 _refresh_lock = threading.Lock()
+_refresh = {"en_cours": False, "lance_le": None, "termine_le": None, "rapport": None, "erreur": None}
 _last_refresh = {"at": 0.0}
+_last_newsapi = {"at": 0.0}
 
 
-@router.post("/market/refresh")
-def market_refresh(repo=Depends(get_repo), collector=Depends(get_collector)) -> dict[str, Any]:
+def _news_key() -> str:
+    """Clé NewsAPI seulement si le dernier appel date de plus de 15 minutes (quota gratuit)."""
+    key = config.load_settings().news_api_key
+    now = time.monotonic()
+    if key and (not _last_newsapi["at"] or now - _last_newsapi["at"] >= config.NEWSAPI_INTERVALLE_MIN_SECONDES):
+        _last_newsapi["at"] = now
+        return key
+    return ""
+
+
+def _run_refresh(repo, collector) -> None:
+    try:
+        _refresh["rapport"] = refresh(repo, collector, news_api_key=_news_key())
+        _refresh["erreur"] = None
+    except Exception as error:  # l'erreur est montrée à l'interface, la clé n'y figure jamais
+        _refresh["erreur"] = f"{type(error).__name__}: {error}"
+    finally:
+        if hasattr(repo, "invalidate"):
+            repo.invalidate()  # les écrans relisent les nouvelles données
+        _refresh["en_cours"] = False
+        _refresh["termine_le"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+@router.post("/market/refresh", status_code=202)
+def market_refresh(
+    background: BackgroundTasks,
+    response: Response,
+    attendre: bool = False,
+    repo=Depends(get_repo),
+    collector=Depends(get_collector),
+) -> dict[str, Any]:
     with _refresh_lock:
+        if _refresh["en_cours"]:
+            return {"statut": "en_cours", "lance_le": _refresh["lance_le"]}
         wait = config.REFRESH_INTERVALLE_MIN_SECONDES - (time.monotonic() - _last_refresh["at"])
         if _last_refresh["at"] and wait > 0:
             raise HTTPException(
                 status_code=429,
-                detail=f"Données actualisées il y a moins de 5 minutes : réessayez dans {math.ceil(wait / 60)} min.",
+                detail=f"Données actualisées il y a moins de 2 minutes : réessayez dans {math.ceil(wait)} s.",
                 headers={"Retry-After": str(math.ceil(wait))},
             )
-        try:
-            report = refresh(repo, collector, news_api_key=config.load_settings().news_api_key)
-        finally:
-            if hasattr(repo, "invalidate"):
-                repo.invalidate()  # les écrans relisent les nouvelles données
         _last_refresh["at"] = time.monotonic()
-    return report
+        _refresh.update(en_cours=True, lance_le=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                        termine_le=None, erreur=None)
+    if attendre:
+        _run_refresh(repo, collector)
+        response.status_code = 500 if _refresh["erreur"] else 200
+        return {"statut": "erreur" if _refresh["erreur"] else "termine", "erreur": _refresh["erreur"],
+                **(_refresh["rapport"] or {})}
+    background.add_task(_run_refresh, repo, collector)
+    return {"statut": "lance", "lance_le": _refresh["lance_le"]}
+
+
+@router.get("/market/refresh/status")
+def market_refresh_status() -> dict[str, Any]:
+    """Où en est l'actualisation : en cours, terminée (avec son compte rendu) ou en erreur."""
+    return dict(_refresh)

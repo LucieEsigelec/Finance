@@ -92,8 +92,10 @@ NEWS_MOTS_CLES: Final[Mapping[str, tuple[str, ...]]] = {
 NEWS_BRUIT: Final = ("cours action", "cotation bourse", "cours de bourse en temps reel")
 NEWS_MAX_ARTICLES_PAR_SOURCE: Final = 15
 HTTP_TIMEOUT_SECONDES: Final = 20
-# Le bouton « Actualiser » est public : au plus une actualisation toutes les 5 minutes.
-REFRESH_INTERVALLE_MIN_SECONDES: Final = 300
+# Le bouton « Actualiser » est public : au plus une actualisation toutes les 2 minutes (D-11)…
+REFRESH_INTERVALLE_MIN_SECONDES: Final = 120
+# … et NewsAPI (gratuit : 100 requêtes / jour, 5 par actualisation) au plus toutes les 15 minutes.
+NEWSAPI_INTERVALLE_MIN_SECONDES: Final = 900
 
 # ---------------------------------------------------------------------------
 # 3. Échelle des notes — SPEC §1.2 : note = 50 + 50 × signal

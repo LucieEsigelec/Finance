@@ -24,13 +24,22 @@ export function DashboardProvider({ children }) {
     }
   }, [])
 
-  /** Bouton « Actualiser les données » : POST /api/market/refresh puis rechargement. */
+  /** Bouton « Actualiser les données » : lance l'actualisation, suit son avancement
+   *  toutes les 2 secondes (elle tourne en arrière-plan sur le serveur), puis recharge. */
   const refreshMarket = useCallback(async () => {
     setRefreshing(true)
     try {
-      const report = await api.refresh()
-      await reload()
-      return report
+      await api.refresh()
+      for (let attempt = 0; attempt < 150; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        const status = await api.refreshStatus()
+        if (!status.en_cours) {
+          if (status.erreur) throw new Error(`L'actualisation a échoué : ${status.erreur}`)
+          await reload()
+          return status.rapport
+        }
+      }
+      throw new Error("L'actualisation prend plus de temps que prévu : réessayez dans quelques minutes.")
     } finally {
       setRefreshing(false)
     }

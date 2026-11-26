@@ -70,4 +70,5 @@ Chaque fusion sur `main` redéploie automatiquement l'API (Render) et l'interfac
 | Le site affiche « L'application ne parvient pas à joindre le serveur » | API endormie ou `VITE_API_URL` faux | Ouvrir `/api/health`, vérifier la variable Vercel puis redéployer |
 | Erreur CORS dans la console du navigateur | Adresse Vercel absente de `CORS_ORIGINS` | Étape 3 |
 | L'API ne démarre pas sur Render | Variable manquante | Les journaux Render indiquent `Variable(s) manquante(s)` |
-| « Données actualisées il y a moins de 5 minutes » | Protection du bouton Actualiser | Attendre 5 minutes |
+| « Données actualisées il y a moins de 2 minutes » | Protection du bouton Actualiser | Attendre 2 minutes |
+| Les seuils de `render.yaml` ne s'appliquent pas | Render ne synchronise pas toujours les variables d'un Blueprint | Les ajouter à la main dans l'onglet **Environment** du service |

@@ -37,6 +37,8 @@ def api(repo):
     app.dependency_overrides[deps.get_now] = lambda: NOW
     app.dependency_overrides[deps.get_collector] = lambda: FakeCollector(NOW.date())
     stocks._last_refresh["at"] = 0.0
+    stocks._last_newsapi["at"] = 0.0
+    stocks._refresh.update(en_cours=False, rapport=None, erreur=None)
     return TestClient(app)
 
 
@@ -287,7 +289,48 @@ def test_history_without_operations_still_has_a_curve(api):
 
 def test_refresh_route_then_rate_limited(api, repo):
     before = len(repo.scores)
-    first = api.post("/api/market/refresh")
-    assert first.status_code == 200 and len(repo.scores) == before + 5
+    first = api.post("/api/market/refresh", params={"attendre": "true"})
+    assert first.status_code == 200 and first.json()["statut"] == "termine"
+    assert len(repo.scores) == before + 5
     second = api.post("/api/market/refresh")
     assert second.status_code == 429 and "Retry-After" in second.headers
+
+
+def test_refresh_runs_in_background_and_reports_status(api, repo):
+    before = len(repo.scores)
+    response = api.post("/api/market/refresh")
+    assert response.status_code == 202 and response.json()["statut"] == "lance"
+    status = api.get("/api/market/refresh/status").json()  # TestClient attend la tâche de fond
+    assert status["en_cours"] is False and status["termine_le"] and status["erreur"] is None
+    assert set(status["rapport"]["actions"]) == set(config.TICKERS)
+    assert len(repo.scores) == before + 5
+
+
+def test_refresh_already_running_is_not_started_twice(api):
+    stocks._refresh["en_cours"] = True
+    response = api.post("/api/market/refresh")
+    assert response.status_code == 202 and response.json()["statut"] == "en_cours"
+
+
+def test_newsapi_called_at_most_every_15_minutes(monkeypatch):
+    monkeypatch.setenv("NEWS_API_KEY", "cle")
+    stocks._last_newsapi["at"] = 0.0
+    assert stocks._news_key() == "cle"
+    assert stocks._news_key() == ""  # deuxième actualisation juste après : pas de NewsAPI
+
+
+def test_threshold_change_applies_immediately_without_refresh(api, repo, monkeypatch):
+    """D-11 : le conseil est relu avec les seuils actuels (TotalEnergies à 55,2 → ACHAT à 55/45)."""
+    action_id = repo.action_by_ticker("TTE.PA")["id"]
+    score = repo.latest_scores()[action_id]
+    score["score_global"] = 55.2
+    score["decision"] = "RIEN"  # enregistré avec 60 / 40
+    before = api.get("/api/stocks/TTE.PA").json()["conseil"]
+    assert before["decision"] == "RIEN" and before["seuil_achat"] == 60
+    monkeypatch.setattr(config, "SEUIL_ACHAT", 55.0)
+    monkeypatch.setattr(config, "SEUIL_VENTE", 45.0)
+    after = api.get("/api/stocks/TTE.PA").json()["conseil"]
+    assert after["decision"] == "ACHAT" and after["seuil_achat"] == 55
+    assert not any("sous le seuil" in r for r in after["raisons"])
+    dashboard = api.get("/api/dashboard").json()
+    assert next(a for a in dashboard["actions"] if a["ticker"] == "TTE.PA")["conseil"] == "ACHAT"

@@ -45,6 +45,8 @@ export const api = {
   stock: (ticker) => request(`/api/stocks/${encodeURIComponent(ticker)}`),
   /** GET /api/portfolio/history — journal, courbe et bilan */
   history: (params) => request('/api/portfolio/history', { params }),
-  /** POST /api/market/refresh — actualise les données de marché */
+  /** POST /api/market/refresh — lance l'actualisation (elle continue en arrière-plan) */
   refresh: () => request('/api/market/refresh', { method: 'POST' }),
+  /** GET /api/market/refresh/status — où en est l'actualisation */
+  refreshStatus: () => request('/api/market/refresh/status'),
 }

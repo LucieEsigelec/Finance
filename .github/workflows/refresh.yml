@@ -19,6 +19,6 @@ jobs:
         run: curl --silent --show-error --max-time 90 --retry 3 --retry-delay 20 "${{ secrets.API_URL }}/api/health"
       - name: Actualiser
         run: |
-          code=$(curl --silent --output response.json --write-out "%{http_code}" --max-time 300 -X POST "${{ secrets.API_URL }}/api/market/refresh")
+          code=$(curl --silent --output response.json --write-out "%{http_code}" --max-time 300 -X POST "${{ secrets.API_URL }}/api/market/refresh?attendre=true")
           cat response.json
           if [ "$code" != "200" ] && [ "$code" != "429" ]; then exit 1; fi
