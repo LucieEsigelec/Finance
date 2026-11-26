@@ -45,6 +45,10 @@ export const api = {
   stock: (ticker) => request(`/api/stocks/${encodeURIComponent(ticker)}`),
   /** GET /api/portfolio/history — journal, courbe et bilan */
   history: (params) => request('/api/portfolio/history', { params }),
+  /** GET /api/profil — profil de risque, profils disponibles, notes actuelles (D-17) */
+  profile: () => request('/api/profil'),
+  /** PUT /api/profil — enregistre le profil de risque choisi */
+  setProfile: (profil) => request('/api/profil', { method: 'PUT', body: { profil } }),
   /** POST /api/market/refresh — lance l'actualisation (elle continue en arrière-plan) */
   refresh: () => request('/api/market/refresh', { method: 'POST' }),
   /** GET /api/market/refresh/status — où en est l'actualisation */

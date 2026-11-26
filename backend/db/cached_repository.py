@@ -31,7 +31,7 @@ MARKET_WRITES = {
     "update_action", "upsert_history", "save_ratios", "insert_missing_articles", "insert_scores",
     "upsert_intraday", "purge_intraday", "update_article_score",
 }
-PORTFOLIO_WRITES = {"execute_transaction", "update_portfolio_week"}
+PORTFOLIO_WRITES = {"execute_transaction", "update_portfolio_week", "update_portfolio_profile"}
 
 
 class CachedRepository:

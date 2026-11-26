@@ -57,6 +57,7 @@ class FakeRepository:
         self.portfolio = {
             "id": str(uuid.uuid4()), "capital_initial": Decimal("500000.00"), "cash_disponible": Decimal(cash),
             "val_semaine_prec": Decimal("500000.00"), "date_ref_semaine": ref_day, "nom_client": None,
+            "profil_risque": None,
         }
 
     # actions
@@ -175,6 +176,9 @@ class FakeRepository:
     def update_portfolio_week(self, portfolio_id, value, monday):
         self.portfolio["val_semaine_prec"] = Decimal(str(value))
         self.portfolio["date_ref_semaine"] = monday
+
+    def update_portfolio_profile(self, portfolio_id, profile):
+        self.portfolio["profil_risque"] = profile
 
     def get_transactions(self, portfolio_id):
         return [dict(t) for t in sorted(self.transactions, key=lambda t: t["date_execution"])]

@@ -13,6 +13,7 @@ Les 6 routes métier du DCT §6 sont dans ``routers/`` :
 - ``simulator.py`` : POST /api/simulate
 - ``transactions.py`` : POST /api/transactions, GET /api/portfolio/history
 - ``stocks.py`` : GET /api/stocks/{ticker}, POST /api/market/refresh
+- ``profile.py`` : GET / PUT /api/profil (profil de risque, D-17)
 
 Lancement : ``python -m uvicorn main:app --reload --port 8000`` depuis ``backend/``.
 """
@@ -25,7 +26,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import config
-from routers import dashboard, simulator, stocks, transactions
+from routers import dashboard, profile, simulator, stocks, transactions
 
 API_VERSION = "0.2.0"
 
@@ -46,7 +47,7 @@ def create_app(settings: config.Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PUT"],  # PUT : profil de risque (D-17)
         allow_headers=["Content-Type"],
     )
 
@@ -58,7 +59,7 @@ def create_app(settings: config.Settings | None = None) -> FastAPI:
             "heure_serveur": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
 
-    for module in (dashboard, simulator, transactions, stocks):
+    for module in (dashboard, simulator, transactions, stocks, profile):
         app.include_router(module.router)
     return app
 

@@ -9,6 +9,7 @@ import SimulatorPage from './pages/SimulatorPage'
 // Les pages avec graphiques (bibliothèques lourdes) ne sont chargées qu'à leur ouverture.
 const StockDetailPage = lazy(() => import('./pages/StockDetailPage'))
 const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 
 // Routes React (UI §3) : 5 onglets + fiche action. Toutes les pages partagent la NavBar
 // et le bandeau d'alerte (AppLayout).
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="simulateur" element={<SimulatorPage />} />
         <Route path="action/:ticker" element={<Suspense fallback={<LoadingState />}><StockDetailPage /></Suspense>} />
         <Route path="historique" element={<Suspense fallback={<LoadingState />}><HistoryPage /></Suspense>} />
+        <Route path="profil" element={<Suspense fallback={<LoadingState />}><ProfilePage /></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

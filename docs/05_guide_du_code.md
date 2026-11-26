@@ -274,3 +274,23 @@ Tout est décrit pas à pas dans `docs/06_deploiement.md`. En résumé :
 | `frontend/vercel.json` | Permet à Vercel d'ouvrir directement n'importe quelle adresse de l'application |
 | `.github/workflows/refresh.yml` | Actualisation planifiée : appelle `POST /api/market/refresh` à 18 h et chaque heure en séance |
 | `.github/workflows/ci.yml` | Sur chaque Pull Request : tests du backend et construction du frontend |
+
+## 9. Le profil de risque et le thème (D-17)
+
+### 9.1 Le profil de risque
+
+Dans l'onglet **Profil**, le client choisit à partir de quelle note on lui conseille d'acheter ou de vendre :
+
+| Profil | Achat si note ≥ | Vente si note ≤ | En pratique |
+|---|---|---|---|
+| Prudent | 60 | 40 | Réglage du cahier des charges : conseils rares mais nets |
+| Équilibré | 55 | 45 | Plus de conseils |
+| Dynamique | 50 | 40 | Achat dès que les signaux sont favorables ; vente seulement s'ils sont nettement défavorables |
+
+Les profils sont définis dans `config.py` (`PROFILS_RISQUE`). Le choix est enregistré dans la colonne `portefeuille.profil_risque` (migration 005) par `PUT /api/profil` (`routers/profile.py`). À chaque affichage, `load_state` lit ce profil et **relit chaque conseil avec ses seuils** (`rederive_advice`) : changer de profil change immédiatement les conseils de tous les écrans, sans recalculer les notes. Le garde-fou de perte (−10 % par semaine) ne dépend pas du profil.
+
+La page montre, pour chaque profil, combien des 5 actions seraient à l'achat, en attente ou à la vente avec les notes du moment : le client voit l'effet avant d'enregistrer.
+
+### 9.2 Le thème clair ou sombre
+
+`context/ThemeContext.jsx` garde le choix (clair, sombre ou « comme l'ordinateur ») dans le navigateur et pose `data-theme="dark"` sur la page ; les couleurs sombres de la charte (`tokens.css`) prennent alors le relais, sans changer une ligne des composants. Un petit script dans `index.html` applique le thème avant l'affichage (pas de flash blanc). Les graphiques des cours sont redessinés quand le thème change, car ils lisent les couleurs au moment du dessin.

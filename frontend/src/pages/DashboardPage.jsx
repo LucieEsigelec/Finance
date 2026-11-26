@@ -21,6 +21,7 @@ export default function DashboardPage() {
           <h1>Tableau de bord</h1>
           <p className="mt-1 mb-0 text-[13px] text-muted">
             Semaine du {formatDate(data.semaine.debut)} au {formatDate(data.semaine.fin)} · capital de départ {eurKpi(data.capital_initial)}
+            {data.profil && <> · profil {data.profil.nom} (achat ≥ {data.profil.seuil_achat}, vente ≤ {data.profil.seuil_vente})</>}
           </p>
         </div>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">

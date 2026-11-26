@@ -56,6 +56,17 @@ def stock_row(ticker: str, state, include_reasons: bool = True) -> dict[str, Any
     return row
 
 
+def profile_summary(state) -> dict[str, Any]:
+    """Profil de risque du client et seuils de conseil qui en découlent (D-17)."""
+    profile = config.PROFILS_RISQUE.get(state.profil or "")
+    return {
+        "id": state.profil,
+        "nom": profile["nom"] if profile else "Par défaut",
+        "seuil_achat": state.seuils[0],
+        "seuil_vente": state.seuils[1],
+    }
+
+
 @router.get("/dashboard")
 def dashboard(
     background: BackgroundTasks,
@@ -95,6 +106,7 @@ def dashboard(
         "niveau_alerte": state.niveau_alerte,
         "alerte_perte_10pct": state.niveau_alerte == ATTEINT,
         "seuils_alerte_pct": {"approche": config.ALERTE_APPROCHE_PCT, "atteint": config.ALERTE_ATTEINT_PCT},
+        "profil": profile_summary(state),
         "semaine": {"debut": monday.isoformat(), "fin": friday.isoformat()},
         "nb_titres_detenus": len(state.held),
         "actions": [stock_row(t, state) for t in config.TICKERS if t in state.actions],

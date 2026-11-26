@@ -43,6 +43,8 @@
 }
 
 @layer base {
+  html { color-scheme: light; }
+  html[data-theme="dark"] { color-scheme: dark; }
   body {
     margin: 0;
     font-family: var(--font-sans);
