@@ -1,5 +1,6 @@
 import { AreaSeries, CandlestickSeries, createChart, HistogramSeries, LineSeries, LineStyle } from 'lightweight-charts'
 import { useEffect, useRef } from 'react'
+import { useTheme } from '../../context/ThemeContext'
 import { cssVar } from '../../lib/stocks'
 
 // Graphique de la fiche action (UI §4.5, charte §7.7) avec TradingView Lightweight Charts :
@@ -34,6 +35,7 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday
   const mainRef = useRef(null)
   const rsiRef = useRef(null)
   const macdRef = useRef(null)
+  const { resolved: theme } = useTheme() // graphiques redessinés quand le thème change
 
   useEffect(() => {
     if (!series.length) return undefined
@@ -96,7 +98,7 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday
       handlers.forEach(([chart, handler]) => chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler))
       charts.forEach((chart) => chart.remove())
     }
-  }, [series, show, intraday])
+  }, [series, show, intraday, theme])
 
   return (
     <div className="flex flex-col gap-0">

@@ -457,3 +457,44 @@ def test_simulate_per_stock_input_errors(api, payload):
 def test_simulate_per_stock_unknown_ticker_is_404(api):
     response = api.post("/api/simulate", json={"operation": "ACHAT", "operations": [{"ticker": "ZZZ.PA", "montant_eur": 10}]})
     assert response.status_code == 404
+
+
+# --- Profil de risque (D-17) -------------------------------------------------------------
+
+
+def test_profile_lists_the_three_profiles_and_defaults(api):
+    body = api.get("/api/profil").json()
+    assert [p["id"] for p in body["profils"]] == ["prudent", "equilibre", "dynamique"]
+    assert [(p["seuil_achat"], p["seuil_vente"]) for p in body["profils"]] == [(60, 40), (55, 45), (50, 40)]
+    assert body["profil"] == {"id": None, "nom": "Par défaut", "seuil_achat": 60.0, "seuil_vente": 40.0}
+    assert body["enregistrable"] is True and set(body["notes"]) == set(config.TICKERS)
+
+
+@pytest.mark.parametrize(("profil", "note", "attendu"), [
+    ("prudent", 55.2, "RIEN"), ("equilibre", 55.2, "ACHAT"), ("dynamique", 50.0, "ACHAT"),
+    ("dynamique", 45.0, "RIEN"), ("equilibre", 45.0, "VENTE"),
+])
+def test_choosing_a_profile_changes_advice_immediately(api, repo, profil, note, attendu):
+    action_id = repo.action_by_ticker("TTE.PA")["id"]
+    repo.latest_scores()[action_id]["score_global"] = note
+    response = api.put("/api/profil", json={"profil": profil})
+    assert response.status_code == 200 and repo.portfolio["profil_risque"] == profil
+    conseil = api.get("/api/stocks/TTE.PA").json()["conseil"]
+    assert conseil["decision"] == attendu
+    achat, vente = config.thresholds_for(profil)
+    assert (conseil["seuil_achat"], conseil["seuil_vente"]) == (achat, vente)
+    dashboard = api.get("/api/dashboard").json()
+    assert dashboard["profil"]["id"] == profil
+    assert next(a for a in dashboard["actions"] if a["ticker"] == "TTE.PA")["conseil"] == attendu
+
+
+def test_unknown_profile_is_422(api):
+    assert api.put("/api/profil", json={"profil": "kamikaze"}).status_code == 422
+
+
+def test_profile_not_saved_before_migration_005(api, repo):
+    del repo.portfolio["profil_risque"]
+    body = api.get("/api/profil").json()
+    assert body["enregistrable"] is False
+    response = api.put("/api/profil", json={"profil": "prudent"})
+    assert response.status_code == 409 and "migration 005" in response.json()["detail"]

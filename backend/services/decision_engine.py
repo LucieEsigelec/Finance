@@ -49,11 +49,13 @@ def final_score(notes: Mapping[str, float], poids: Mapping[str, float] | None = 
     return sum(poids[pilier] * notes[pilier] for pilier in poids)
 
 
-def decide(note: float) -> str:
+def decide(note: float, seuils: tuple[float, float] | None = None) -> str:
+    """seuils = (achat, vente) du profil du client (D-17) ; par défaut ceux de config.py."""
+    achat, vente = seuils or (config.SEUIL_ACHAT, config.SEUIL_VENTE)
     note = round_half_up(note, 1)
-    if note >= config.SEUIL_ACHAT:
+    if note >= achat:
         return ACHAT
-    if note <= config.SEUIL_VENTE:
+    if note <= vente:
         return VENTE
     return RIEN
 
@@ -341,7 +343,9 @@ def build_reasons(
     niveau_alerte: str = AUCUN,
     variation_semaine_pct: float = 0.0,
     info_message: str | None = None,
+    seuils: tuple[float, float] | None = None,
 ) -> list[str]:
+    seuil_achat, seuil_vente = seuils or (config.SEUIL_ACHAT, config.SEUIL_VENTE)
     note = round_half_up(note_finale, 1)
     direction = {ACHAT: 1, VENTE: -1}.get(conseil, 1 if note >= config.NOTE_NEUTRE else -1)
     contributions = {
@@ -362,15 +366,15 @@ def build_reasons(
     if conseil == RIEN:
         note_txt = f"{note:.1f}".replace(".", ",")
         if note >= config.NOTE_NEUTRE:
-            juste = "juste " if config.SEUIL_ACHAT - note <= 2 else ""
+            juste = "juste " if seuil_achat - note <= 2 else ""
             head.append(
-                f"Note de {note_txt}, {juste}sous le seuil d'achat ({config.SEUIL_ACHAT:.0f}) : "
+                f"Note de {note_txt}, {juste}sous le seuil d'achat ({seuil_achat:.0f}) : "
                 "signaux plutôt favorables mais pas assez nets."
             )
         else:
-            juste = "juste " if note - config.SEUIL_VENTE <= 2 else ""
+            juste = "juste " if note - seuil_vente <= 2 else ""
             head.append(
-                f"Note de {note_txt}, {juste}au-dessus du seuil de vente ({config.SEUIL_VENTE:.0f}) : "
+                f"Note de {note_txt}, {juste}au-dessus du seuil de vente ({seuil_vente:.0f}) : "
                 "signaux plutôt défavorables mais pas assez nets."
             )
 
@@ -411,7 +415,7 @@ def build_reasons(
 # ---------------------------------------------------------------------------
 
 
-def rederive_advice(score: Mapping[str, Any]) -> dict[str, Any]:
+def rederive_advice(score: Mapping[str, Any], seuils: tuple[float, float] | None = None) -> dict[str, Any]:
     """Recalcule le conseil et ses raisons à partir de la note enregistrée, avec les seuils
     ACTUELS de config.py. Un changement de seuils s'applique donc tout de suite, sans
     attendre la prochaine actualisation. Les notes des piliers ne sont pas recalculées."""
@@ -431,10 +435,11 @@ def rederive_advice(score: Mapping[str, Any]) -> dict[str, Any]:
         moyenne_rendement_pct=stored.get("moyenne_rendement_pct"),
     )
     infos = details.get("infos") or {}
-    conseil = decide(note)
+    seuils = seuils or (config.SEUIL_ACHAT, config.SEUIL_VENTE)
+    conseil = decide(note, seuils)
     details["raisons"] = build_reasons(
         note, conseil, notes, (details.get("tech") or {}).get("signaux") or {},
-        infos.get("faits") or [], ratios, info_message=infos.get("message"),
+        infos.get("faits") or [], ratios, info_message=infos.get("message"), seuils=seuils,
     )
-    details["seuils"] = {"achat": config.SEUIL_ACHAT, "vente": config.SEUIL_VENTE}
+    details["seuils"] = {"achat": seuils[0], "vente": seuils[1]}
     return {**score, "decision": conseil, "details_piliers": details}

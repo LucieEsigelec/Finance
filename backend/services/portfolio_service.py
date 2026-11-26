@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
+import config
 from services.decision_engine import (
     APPROCHE,
     ATTEINT,
@@ -40,6 +41,8 @@ class PortfolioState:
     variation_pct: float
     niveau_alerte: str
     date_donnees: str | None
+    profil: str | None = None
+    seuils: tuple[float, float] = (60.0, 40.0)
 
     @property
     def cash(self) -> Decimal:
@@ -56,8 +59,10 @@ def load_state(repo) -> PortfolioState:
         actions = {a["ticker"]: a for a in actions_job.result()}
         latest = scores_job.result()
     by_id = {a["id"]: a["ticker"] for a in actions.values()}
-    # Conseil relu avec les seuils actuels (un changement de seuils s'applique tout de suite).
-    scores = {by_id[aid]: rederive_advice(s) for aid, s in latest.items() if aid in by_id}
+    # Conseil relu avec les seuils du profil du client (D-17) : un changement s'applique tout de suite.
+    profile = portfolio.get("profil_risque")
+    seuils = config.thresholds_for(profile)
+    scores = {by_id[aid]: rederive_advice(s, seuils) for aid, s in latest.items() if aid in by_id}
     held = positions(transactions)
     prices = {t: Decimal(str(a["dernier_cours"])) for t, a in actions.items()}
     value = portfolio_value(portfolio["cash_disponible"], held, prices)
@@ -74,6 +79,8 @@ def load_state(repo) -> PortfolioState:
         variation_pct=variation,
         niveau_alerte=alert_level(variation),
         date_donnees=max(stamps) if stamps else None,
+        profil=profile if profile in config.PROFILS_RISQUE else None,
+        seuils=seuils,
     )
 
 

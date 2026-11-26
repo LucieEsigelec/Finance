@@ -99,3 +99,9 @@ def test_decision_follows_configured_thresholds(monkeypatch):
     monkeypatch.setattr(config, "SEUIL_ACHAT", 55.0)
     monkeypatch.setattr(config, "SEUIL_VENTE", 45.0)
     assert decide(56.3) == "ACHAT" and decide(54.9) == "RIEN" and decide(45.0) == "VENTE"
+
+
+def test_risk_profiles_are_consistent():
+    assert config.thresholds_for("dynamique") == (50.0, 40.0)
+    assert config.thresholds_for(None) == (config.SEUIL_ACHAT, config.SEUIL_VENTE)
+    assert config.thresholds_for("inconnu") == (config.SEUIL_ACHAT, config.SEUIL_VENTE)

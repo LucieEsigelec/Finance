@@ -80,3 +80,11 @@ def test_legacy_import_name_returns_the_shared_client(monkeypatch):
     assert supabase is sentinel
     with pytest.raises(AttributeError):
         supabase_client.inconnu  # noqa: B018
+
+
+def test_cors_allows_put_for_the_profile(client):
+    response = client.options(
+        "/api/profil",
+        headers={"Origin": LOCAL, "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "content-type"},
+    )
+    assert response.status_code == 200 and "PUT" in response.headers["access-control-allow-methods"]

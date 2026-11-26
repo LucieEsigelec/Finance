@@ -244,6 +244,12 @@ class SupabaseRepository:
             {"val_semaine_prec": str(value), "date_ref_semaine": monday.isoformat()}
         ).eq("id", portfolio_id), write=True)
 
+    def update_portfolio_profile(self, portfolio_id: str, profile: str) -> None:
+        """Profil de risque choisi par le client (colonne créée par la migration 005, D-17)."""
+        self._run(
+            self.client.table("portefeuille").update({"profil_risque": profile}).eq("id", portfolio_id), write=True
+        )
+
     def get_transactions(self, portfolio_id: str) -> list[dict[str, Any]]:
         rows = self._all(
             self.client.table("transactions").select("*, actions(ticker, nom)")

@@ -1,17 +1,20 @@
+import { Moon, Sun } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useDashboard } from '../../context/DashboardContext'
+import { useTheme } from '../../context/ThemeContext'
 import { useToast } from '../../context/ToastContext'
 import { formatDateTime } from '../../lib/format'
 import Button from '../ui/Button'
 
-// NavBar (UI §4.1, maquette NavBar) : nom de l'application (retour à l'accueil), 5 onglets,
-// date des données, bouton « Actualiser les données ». « Actions » ouvre la fiche DSY.PA (D-09).
+// NavBar (UI §4.1, maquette NavBar) : nom de l'application (retour à l'accueil), 6 onglets
+// (dont Profil, D-17), date des données, bouton « Actualiser les données », bascule clair / sombre. « Actions » ouvre la fiche DSY.PA (D-09).
 const TABS = [
   { to: '/', label: 'Accueil', end: true },
   { to: '/tableau-de-bord', label: 'Tableau de bord' },
   { to: '/simulateur', label: 'Simulateur' },
   { to: '/action/DSY.PA', label: 'Actions', match: '/action/' },
   { to: '/historique', label: 'Historique' },
+  { to: '/profil', label: 'Profil' },
 ]
 
 function Logo() {
@@ -28,6 +31,7 @@ export default function NavBar() {
   const { data, refreshing, refreshMarket } = useDashboard()
   const toast = useToast()
   const { pathname } = useLocation()
+  const { resolved, toggle } = useTheme()
 
   async function onRefresh() {
     try {
@@ -61,7 +65,16 @@ export default function NavBar() {
             </NavLink>
           ))}
         </nav>
-        <span className="hidden text-[13px] text-muted lg:inline">Données du {formatDateTime(data?.date_donnees)}</span>
+        <span className="hidden text-[13px] text-muted xl:inline">Données du {formatDateTime(data?.date_donnees)}</span>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={resolved === 'dark' ? 'Passer au thème clair' : 'Passer au thème sombre'}
+          title={resolved === 'dark' ? 'Thème clair' : 'Thème sombre'}
+          className="flex size-8 flex-none items-center justify-center rounded-md border border-line-strong text-ink hover:bg-sunken"
+        >
+          {resolved === 'dark' ? <Sun className="size-4" strokeWidth={1.75} /> : <Moon className="size-4" strokeWidth={1.75} />}
+        </button>
         <Button size="sm" onClick={onRefresh} disabled={refreshing}>
           {refreshing ? 'Actualisation…' : 'Actualiser les données'}
         </Button>

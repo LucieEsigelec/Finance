@@ -17,7 +17,7 @@ import os
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Final, Mapping
+from typing import Any, Final, Mapping
 
 from dotenv import load_dotenv
 
@@ -203,6 +203,31 @@ def _threshold(name: str, default: float) -> float:
 SEUIL_ACHAT: Final = _threshold("SEUIL_ACHAT", 60.0)  # note ≥ SEUIL_ACHAT → ACHAT
 SEUIL_VENTE: Final = _threshold("SEUIL_VENTE", 40.0)  # note ≤ SEUIL_VENTE → VENTE
 
+# Profils de risque choisis par le client dans l'onglet Profil (D-17) : seuils (achat, vente).
+# Sans profil choisi, ce sont SEUIL_ACHAT / SEUIL_VENTE ci-dessus qui s'appliquent.
+PROFILS_RISQUE: Final[Mapping[str, Mapping[str, Any]]] = {
+    "prudent": {
+        "nom": "Prudent",
+        "achat": 60.0,
+        "vente": 40.0,
+        "description": "Conseils plus rares mais plus nets : il faut des signaux clairs pour acheter ou "
+        "vendre. C'est le réglage du cahier des charges.",
+    },
+    "equilibre": {
+        "nom": "Équilibré",
+        "achat": 55.0,
+        "vente": 45.0,
+        "description": "Plus de conseils d'achat et de vente, avec des signaux un peu moins marqués.",
+    },
+    "dynamique": {
+        "nom": "Dynamique",
+        "achat": 50.0,
+        "vente": 40.0,
+        "description": "Achat conseillé dès que les signaux sont favorables, vente seulement quand ils sont "
+        "nettement défavorables. Beaucoup d'achats conseillés : plus de risque.",
+    },
+}
+
 RAISONS_MIN: Final = 2
 RAISONS_MAX: Final = 4
 # Un pilier « pèse » s'il déplace la note finale d'au moins 1 point (poids × écart à 50).
@@ -258,6 +283,13 @@ HISTORIQUE_HORIZON_JOURS: Final = 365
 _PILIERS: Final = ("infos", "tech", "ratios", "hasard")
 
 
+def thresholds_for(profile: str | None) -> tuple[float, float]:
+    """Seuils (achat, vente) du profil choisi par le client, ou ceux par défaut (D-17)."""
+    if profile in PROFILS_RISQUE:
+        return PROFILS_RISQUE[profile]["achat"], PROFILS_RISQUE[profile]["vente"]
+    return SEUIL_ACHAT, SEUIL_VENTE
+
+
 def check_rg04(poids: Mapping[str, float]) -> None:
     """RG-04 : le poids des Informations est strictement supérieur aux trois autres.
 
@@ -285,6 +317,9 @@ def check_config() -> None:
         raise ConfigError("Seuils : il faut SEUIL_VENTE < 50 < SEUIL_ACHAT")
     if not ALERTE_ATTEINT_PCT < ALERTE_APPROCHE_PCT < 0:
         raise ConfigError("Alerte : il faut ALERTE_ATTEINT_PCT < ALERTE_APPROCHE_PCT < 0")
+    for key, profile in PROFILS_RISQUE.items():
+        if not profile["vente"] < profile["achat"] or not profile["vente"] <= NOTE_NEUTRE <= profile["achat"]:
+            raise ConfigError(f"Profil {key} : il faut vente < achat et vente <= 50 <= achat")
     if not 0 < CONFIANCE_ECART_MOYENNE < CONFIANCE_ECART_FORTE <= NOTE_ECHELLE:
         raise ConfigError("Confiance : il faut 0 < ECART_MOYENNE < ECART_FORTE <= 50")
     if not 0 < RAISONS_MIN <= RAISONS_MAX:

@@ -12,6 +12,14 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
     />
     <title>PrimeInvest</title>
+    <script>
+      // Thème appliqué avant l'affichage (évite un flash clair en thème sombre).
+      try {
+        var t = localStorage.getItem('primeinvest-theme') || 'systeme'
+        var dark = t === 'sombre' || (t === 'systeme' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

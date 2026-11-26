@@ -229,8 +229,8 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
             "decision": row["conseil"],
             "note": row["note"],
             "confiance": row["confiance"],
-            "seuil_achat": config.SEUIL_ACHAT,
-            "seuil_vente": config.SEUIL_VENTE,
+            "seuil_achat": state.seuils[0],  # seuils du profil du client (D-17)
+            "seuil_vente": state.seuils[1],
             "raisons": row["raisons"],
         },
         "prevision": {
