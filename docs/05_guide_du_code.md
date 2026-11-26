@@ -29,7 +29,7 @@ Les calculs lourds (indicateurs, notes) sont faits **à l'avance**, lors d'une �
 
 **Pourquoi tout mettre dans `config.py` ?** Si le client veut changer un seuil (par exemple acheter à 65 au lieu de 60), on change une seule ligne, sans toucher aux calculs.
 
-**Les seuils de conseil** (60 / 40 dans la SPEC) peuvent être changés sans toucher au code, par les variables `SEUIL_ACHAT` et `SEUIL_VENTE` (dans `backend/.env` ou sur Render). Le site en ligne fait un essai à 55 / 45 (décision D-10). Un seuil invalide (par exemple un achat sous 50) empêche l'API de démarrer.
+**Les seuils de conseil** (60 / 40 dans la SPEC) peuvent être changés sans toucher au code ; le conseil est recalculé à chaque affichage à partir de la note enregistrée (`rederive_advice`), donc un nouveau seuil s'applique tout de suite, par les variables `SEUIL_ACHAT` et `SEUIL_VENTE` (dans `backend/.env` ou sur Render). Le site en ligne fait un essai à 55 / 45 (décision D-10). Un seuil invalide (par exemple un achat sous 50) empêche l'API de démarrer.
 
 **Le contrôle RG-04.** Au chargement, `check_rg04` regarde les 4 poids. Si celui des Informations n'est pas strictement le plus grand, ou si les poids ne font pas 100 %, une erreur est levée et l'API ne démarre pas (cas V8).
 
@@ -131,6 +131,10 @@ Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week
 
 **Si une source est en panne**, l'actualisation continue avec ce qui est déjà en base, et l'erreur est notée dans le compte rendu.
 
+**Plus rapide** : les 5 actions sont collectées **en même temps** (`collect_stock` lancée en parallèle), ce qui ramène l'actualisation d'environ 40 à 20 secondes, car l'essentiel du temps est de l'attente réseau.
+
+**En arrière-plan** : le bouton « Actualiser » reçoit tout de suite la réponse « lancée » (code 202) ; l'interface demande toutes les 2 secondes où en est le travail (`GET /api/market/refresh/status`), puis recharge l'écran. Une actualisation au plus toutes les 2 minutes ; NewsAPI au plus toutes les 15 minutes, pour rester dans son quota gratuit.
+
 ### 5.3 Deux précisions de calcul
 
 - **Dividende annuel** : certaines entreprises versent 4 fois par an (TotalEnergies). Si on additionne simplement les versements d'une année civile, un versement daté du 2 janvier ou du 31 décembre fausse tout (+35 % au lieu de +8 %). On prend donc le versement moyen de l'année × le nombre habituel de versements.
@@ -151,7 +155,8 @@ Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week
 | `POST /api/transactions` | `transactions.py` | L'opération enregistrée et le nouveau cash, ou une erreur 400 | Oui, par `executer_transaction` uniquement |
 | `GET /api/stocks/{ticker}` | `stocks.py` | Tout pour la fiche action, ses deux onglets en un seul appel : un an de cours avec indicateurs, conseil, prévision, dividende, actualités, ratios, poids des piliers | Non |
 | `GET /api/portfolio/history` | `transactions.py` | Journal paginé, courbe de valeur jour par jour, bilan (plus-values, dividendes) | Non |
-| `POST /api/market/refresh` | `stocks.py` | Compte rendu de l'actualisation | Oui (données de marché) |
+| `POST /api/market/refresh` | `stocks.py` | « lancée » (202), ou le compte rendu avec `?attendre=true` | Oui (données de marché) |
+| `GET /api/market/refresh/status` | `stocks.py` | Où en est l'actualisation, et son compte rendu | Non |
 | `GET /api/health` | `main.py` | « l'API tourne » | Non |
 
 La documentation interactive de toutes les routes est sur http://localhost:8000/docs quand l'API tourne.
@@ -169,7 +174,8 @@ La documentation interactive de toutes les routes est sur http://localhost:8000/
 | 400 | Règle de gestion non respectée : cash insuffisant, vente supérieure à la position, conseil de plus de 5 minutes, cours changé |
 | 404 | Code d'action inconnu |
 | 422 | Saisie invalide : montant négatif ou nul, opération inconnue, aucune action cochée |
-| 429 | Actualisation demandée moins de 5 minutes après la précédente |
+| 202 | Actualisation lancée en arrière-plan |
+| 429 | Actualisation demandée moins de 2 minutes après la précédente |
 
 ### 6.4 Répondre en moins de 2 secondes
 
