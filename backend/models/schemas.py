@@ -16,27 +16,56 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Operation = Literal["ACHAT", "VENTE"]
 
 
-class SimulateRequest(BaseModel):
-    """POST /api/simulate. Plusieurs titres possibles : le montant s'applique à chacun (D-08).
-    Le contrat du DCT (un seul « ticker ») est aussi accepté."""
+class OperationLine(BaseModel):
+    """Une ligne du simulateur : une action et SON montant (D-14)."""
 
     model_config = ConfigDict(extra="forbid")
 
+    ticker: str
+    montant_eur: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+
+    @field_validator("ticker")
+    @classmethod
+    def upper(cls, value: str) -> str:
+        return value.strip().upper()
+
+
+class SimulateRequest(BaseModel):
+    """POST /api/simulate.
+
+    Format conseillé : ``operations`` = une ligne par action avec son propre montant (D-14).
+    Anciens formats encore acceptés : ``tickers`` + ``montant_eur`` (même montant pour
+    chacune, D-08) et ``ticker`` + ``montant_eur`` (contrat du DCT)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    operations: list[OperationLine] = Field(default_factory=list, max_length=5)
     tickers: list[str] = Field(default_factory=list, max_length=5)
     ticker: str | None = None
     operation: Operation
-    montant_eur: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    montant_eur: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
 
     @model_validator(mode="after")
-    def merge_tickers(self) -> "SimulateRequest":
-        tickers = [t.strip().upper() for t in self.tickers]
-        if self.ticker:
-            tickers.append(self.ticker.strip().upper())
-        tickers = list(dict.fromkeys(tickers))  # sans doublon, ordre conservé
-        if not tickers:
+    def build_lines(self) -> "SimulateRequest":
+        lines = list(self.operations)
+        legacy = [t.strip().upper() for t in self.tickers] + ([self.ticker.strip().upper()] if self.ticker else [])
+        if legacy:
+            if self.montant_eur is None:
+                raise ValueError("Saisissez un montant")
+            lines += [OperationLine(ticker=t, montant_eur=self.montant_eur) for t in legacy]
+        unique: dict[str, OperationLine] = {}
+        for line in lines:  # une seule ligne par action, la première l'emporte
+            unique.setdefault(line.ticker, line)
+        if not unique:
             raise ValueError("Cochez au moins une action")
-        self.tickers = tickers
+        if len(unique) > 5:
+            raise ValueError("5 actions au plus")
+        self.operations = list(unique.values())
         return self
+
+    @property
+    def tickers_list(self) -> list[str]:
+        return [line.ticker for line in self.operations]
 
 
 class TransactionRequest(BaseModel):

@@ -397,3 +397,52 @@ def test_dashboard_gives_small_weekly_change_precisely_with_euros(api, repo):
     body = api.get("/api/dashboard").json()
     assert body["variation_hebdo_eur"] == -40.0
     assert body["variation_hebdo_pct"] == pytest.approx(-0.008, abs=1e-4)
+
+
+# --- Simulateur : un montant par action et un total (D-14) -------------------------------
+
+
+def test_simulate_with_one_amount_per_stock_and_total(api, repo):
+    set_price(repo, "DSY.PA", "34.80")
+    set_price(repo, "AI.PA", "168.40")
+    body = api.post("/api/simulate", json={"operation": "ACHAT", "operations": [
+        {"ticker": "DSY.PA", "montant_eur": 50000}, {"ticker": "AI.PA", "montant_eur": 20000},
+    ]}).json()
+    dsy, ai = body["resultats"]
+    assert (dsy["quantite_entiere"], dsy["montant_demande"]) == (1436, 50000)
+    assert (ai["quantite_entiere"], ai["montant_reel_investi"]) == (118, 19871.20)
+    assert dsy["cash_apres_operation"] == 450027.20
+    assert ai["cash_apres_operation"] == 430156.00  # le cash est décompté ligne après ligne
+    total = body["total"]
+    assert total["montant_demande"] == 70000 and total["montant_reel"] == 69844.00
+    assert total["reliquat"] == 156.00 and total["cash_apres"] == 430156.00
+    assert total["dividende_annuel"] == 416.44 + ai["dividende_annuel_estime_eur"]
+    assert body["avertissement"] is None
+
+
+def test_simulate_total_above_cash_refuses_last_lines(api, repo):
+    body = api.post("/api/simulate", json={"operation": "ACHAT", "operations": [
+        {"ticker": "DSY.PA", "montant_eur": 300000}, {"ticker": "TTE.PA", "montant_eur": 300000},
+    ]}).json()
+    first, second = body["resultats"]
+    assert first["verdict"] != "REFUSE" and second["verdict"] == "REFUSE"
+    assert second["raisons"][0].startswith("Vous disposez de")
+    assert body["total"]["nb_refusees"] == 1
+    assert "dépasse votre cash" in body["avertissement"]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"operation": "ACHAT", "operations": [{"ticker": "DSY.PA", "montant_eur": 0}]},
+        {"operation": "ACHAT", "tickers": ["DSY.PA"]},  # ancien format sans montant
+        {"operation": "ACHAT", "operations": []},
+    ],
+)
+def test_simulate_per_stock_input_errors(api, payload):
+    assert api.post("/api/simulate", json=payload).status_code == 422
+
+
+def test_simulate_per_stock_unknown_ticker_is_404(api):
+    response = api.post("/api/simulate", json={"operation": "ACHAT", "operations": [{"ticker": "ZZZ.PA", "montant_eur": 10}]})
+    assert response.status_code == 404

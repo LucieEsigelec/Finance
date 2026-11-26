@@ -26,30 +26,48 @@ export default function SimulatorPage() {
   const navigate = useNavigate()
   const [selected, setSelected] = useState([])
   const [operation, setOperation] = useState('ACHAT')
-  const [amount, setAmount] = useState('')
-  const [amountError, setAmountError] = useState(null)
+  const [amounts, setAmounts] = useState({})
+  const [errors, setErrors] = useState({})
   const [simulation, setSimulation] = useState(null)
   const [loading, setLoading] = useState(false)
   const [toConfirm, setToConfirm] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const toggle = (ticker) =>
+  const toggle = (ticker) => {
     setSelected((current) => (current.includes(ticker) ? current.filter((t) => t !== ticker) : [...current, ticker]))
+    setErrors((current) => ({ ...current, [ticker]: undefined }))
+  }
+
+  /** Saisir un montant coche l'action ; l'effacer la décoche. */
+  const changeAmount = (ticker, value) => {
+    setAmounts((current) => ({ ...current, [ticker]: value }))
+    setErrors((current) => ({ ...current, [ticker]: undefined }))
+    setSelected((current) => {
+      if (value.trim() && !current.includes(ticker)) return [...current, ticker]
+      if (!value.trim() && current.includes(ticker)) return current.filter((t) => t !== ticker)
+      return current
+    })
+  }
+
+  const total = selected.reduce((sum, t) => sum + (parseAmount(amounts[t] || '') || 0), 0)
 
   async function onSimulate() {
-    const value = parseAmount(amount)
     if (!selected.length) {
-      toast('Cochez au moins une action.', 'error')
+      toast('Cochez au moins une action et indiquez son montant.', 'error')
       return
     }
-    if (!(value > 0)) {
-      setAmountError('Saisissez un montant supérieur à 0')
+    const invalid = Object.fromEntries(
+      selected.filter((t) => !(parseAmount(amounts[t] || '') > 0)).map((t) => [t, 'Saisissez un montant supérieur à 0']),
+    )
+    if (Object.keys(invalid).length) {
+      setErrors(invalid)
       return
     }
-    setAmountError(null)
+    setErrors({})
     setLoading(true)
     try {
-      setSimulation(await api.simulate(selected, operation, value))
+      const lines = selected.map((t) => ({ ticker: t, montant_eur: parseAmount(amounts[t]) }))
+      setSimulation(await api.simulate(lines, operation))
     } catch (error) {
       toast(error.message, 'error')
     } finally {
@@ -68,9 +86,21 @@ export default function SimulatorPage() {
         date_conseil: simulation.date_conseil,
       })
       toast(response.message)
+      const recorded = toConfirm.ticker
       setToConfirm(null)
       await reload()
-      navigate('/tableau-de-bord')
+      // D'autres opérations restent à valider : on reste sur le simulateur.
+      const remaining = simulation.resultats.filter(
+        (r) => r.ticker !== recorded && r.verdict !== 'REFUSE' && r.quantite_entiere > 0 && !r.enregistre,
+      )
+      if (remaining.length) {
+        setSimulation((current) => ({
+          ...current,
+          resultats: current.resultats.map((r) => (r.ticker === recorded ? { ...r, enregistre: true } : r)),
+        }))
+      } else {
+        navigate('/tableau-de-bord')
+      }
     } catch (error) {
       toast(error.message, 'error') // la fenêtre reste ouverte, rien n'est enregistré
     } finally {
@@ -113,12 +143,10 @@ export default function SimulatorPage() {
           onToggle={toggle}
           operation={operation}
           onOperation={setOperation}
-          amount={amount}
-          onAmount={(value) => {
-            setAmount(value)
-            setAmountError(null)
-          }}
-          amountError={amountError}
+          amounts={amounts}
+          onAmount={changeAmount}
+          errors={errors}
+          total={total}
           cash={data?.cash_disponible}
           onSimulate={onSimulate}
           loading={loading}
@@ -142,23 +170,28 @@ export default function SimulatorPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             {simulation?.resultats.map((result) => (
               <AdviceCard key={result.ticker} result={result}>
-                <div className="flex justify-end gap-2">
-                  <Button onClick={() => dismiss(result.ticker)}>Annuler</Button>
-                  <Button
-                    variant={result.operation === 'ACHAT' ? 'buy' : 'sell'}
-                    disabled={result.verdict === 'REFUSE' || !result.quantite_entiere}
-                    onClick={() => setToConfirm(result)}
-                  >
-                    {result.operation === 'ACHAT' ? "Valider l'achat" : 'Valider la vente'}
-                  </Button>
-                </div>
+                {result.enregistre ? (
+                  <div className="rounded-md bg-buy-soft px-3 py-2 text-right font-semibold text-buy">✓ Opération enregistrée</div>
+                ) : (
+                  <div className="flex justify-end gap-2">
+                    <Button onClick={() => dismiss(result.ticker)}>Annuler</Button>
+                    <Button
+                      variant={result.operation === 'ACHAT' ? 'buy' : 'sell'}
+                      disabled={result.verdict === 'REFUSE' || !result.quantite_entiere}
+                      onClick={() => setToConfirm(result)}
+                    >
+                      {result.operation === 'ACHAT' ? "Valider l'achat" : 'Valider la vente'}
+                    </Button>
+                  </div>
+                )}
               </AdviceCard>
             ))}
           </div>
+          {simulation?.total && simulation.resultats.length > 1 && <SimulationTotal total={simulation.total} operation={operation} />}
           <div className="flex gap-3 rounded-md bg-sunken p-4 text-[13px] leading-[18px]">
             <Info className="mt-px size-4 flex-none text-brand" strokeWidth={1.75} aria-hidden="true" />
             <span>
-              Le conseil est une aide : vous restez libre de valider ou non. Le nombre d'actions est arrondi à l'entier inférieur, le reste du montant reste en cash. Plusieurs actions cochées : le montant s'applique à chacune.
+              Le conseil est une aide : vous restez libre de valider ou non. Le nombre d'actions est arrondi à l'entier inférieur, le reste du montant reste en cash. Chaque action se valide séparément.
             </span>
           </div>
           <Disclaimer />
@@ -168,12 +201,42 @@ export default function SimulatorPage() {
       {toConfirm && (
         <ConfirmDialog
           result={toConfirm}
-          cash={simulation.cash_disponible}
+          cash={data?.cash_disponible ?? simulation.cash_disponible}
           submitting={submitting}
           onCancel={() => setToConfirm(null)}
           onConfirm={onConfirm}
         />
       )}
     </div>
+  )
+}
+
+/** Récapitulatif de toutes les lignes simulées (D-14). */
+function SimulationTotal({ total, operation }) {
+  const isBuy = operation === 'ACHAT'
+  const rows = [
+    [isBuy ? 'Montant réellement investi' : 'Montant encaissé', eur(total.montant_reel)],
+    [isBuy ? 'Reste en cash (arrondis)' : 'Montant non vendu', eur(total.reliquat)],
+    [isBuy ? 'Dividendes estimés / an' : 'Dividendes perdus / an', eur(total.dividende_annuel)],
+    ['Cash après toutes les opérations', eur(total.cash_apres)],
+  ]
+  return (
+    <section className="card p-4" aria-label="Total de la simulation">
+      <div className="flex items-baseline justify-between">
+        <h2>Total de l'opération</h2>
+        <span className="text-[13px] text-muted">
+          {total.nb_operations} action{total.nb_operations > 1 ? 's' : ''}
+          {total.nb_refusees ? ` · ${total.nb_refusees} refusée${total.nb_refusees > 1 ? 's' : ''}` : ''} · demandé {eur(total.montant_demande)}
+        </span>
+      </div>
+      <dl className="m-0 mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4 border-b border-line py-1.5">
+            <dt className="text-muted">{label}</dt>
+            <dd className="num m-0 font-semibold">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   )
 }

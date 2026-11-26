@@ -9,12 +9,14 @@ En bref, pour chaque titre coché :
    impossible donne le verdict REFUSE avec sa raison (affichée comme un conseil) ;
 4. on ajoute la prévision en % et en euros, les raisons et le niveau d'alerte.
 
-Plusieurs titres cochés : le montant s'applique à chacun (D-08).
+Chaque action cochée a son propre montant (D-14) ; pour un achat, le cash est décompté
+ligne après ligne, et la réponse contient le total de l'opération.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -23,6 +25,7 @@ from models.schemas import SimulateRequest
 from routers.deps import check_ticker, get_now, get_repo, money
 from services.decision_engine import (
     ATTEINT,
+    REFUSE,
     RIEN,
     fmt_eur,
     forecast_euros,
@@ -36,11 +39,15 @@ router = APIRouter(prefix="/api", tags=["simulateur"])
 @router.post("/simulate")
 def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = Depends(get_now)) -> dict[str, Any]:
     state = load_state(repo)
-    for ticker in request.tickers:
-        check_ticker(ticker, state.actions)
+    for line in request.operations:
+        check_ticker(line.ticker, state.actions)
 
+    # Le cash est décompté ligne après ligne : si le total des achats dépasse le cash,
+    # les dernières lignes sont refusées avec leur raison (RG-05, D-14).
+    available = state.cash
     results = []
-    for ticker in request.tickers:
+    for line in request.operations:
+        ticker = line.ticker
         action = state.actions[ticker]
         score = state.scores.get(ticker) or {}
         details = score.get("details_piliers", {})
@@ -48,14 +55,16 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
         price = state.prices[ticker]
         operation = simulate_operation(
             request.operation,
-            request.montant_eur,
+            line.montant_eur,
             price,
-            state.cash,
+            available,
             state.held.get(ticker, 0),
             conseil,
             state.niveau_alerte,
             action.get("dividende_estime"),
         )
+        if operation.verdict != REFUSE:
+            available = available - operation.montant_reel if request.operation == "ACHAT" else available + operation.montant_reel
         raisons = with_alert(details.get("raisons", []), state.niveau_alerte, state.variation_pct)
         if operation.motif_refus:
             raisons = [operation.motif_refus] + raisons[:3]
@@ -67,6 +76,7 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
                 "nom": action["nom"],
                 "cours_actuel": money(price),
                 "operation": request.operation,
+                "montant_demande": money(line.montant_eur),
                 "quantite_entiere": operation.quantite,
                 "montant_reel_investi": money(operation.montant_reel),
                 "reliquat_cash": money(operation.reliquat),
@@ -81,29 +91,36 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
                 "alerte_risque_rg01": state.niveau_alerte == ATTEINT,
                 "niveau_alerte": state.niveau_alerte,
                 "raisons": raisons,
-                "cash_apres_operation": money(
-                    state.cash - operation.montant_reel if request.operation == "ACHAT"
-                    else state.cash + operation.montant_reel
-                ),
+                "cash_apres_operation": money(available),
                 "detenues": state.held.get(ticker, 0),
             }
         )
 
-    total = request.montant_eur * len(request.tickers)
+    accepted = [r for r in results if r["verdict"] != REFUSE]
+    requested = sum((line.montant_eur for line in request.operations), Decimal(0))
+    refused_for_cash = [r for r in results if r["motif_refus"] and r["motif_refus"].startswith("Vous disposez")]
     warning = None
-    if request.operation == "ACHAT" and len(request.tickers) > 1 and total > state.cash:
+    if request.operation == "ACHAT" and requested > state.cash:
         warning = (
-            f"Le total des {len(request.tickers)} opérations ({fmt_eur(total)}) dépasse votre cash "
-            f"({fmt_eur(state.cash)}) : chaque opération sera revérifiée au moment de l'enregistrement."
+            f"Le total demandé ({fmt_eur(requested)}) dépasse votre cash ({fmt_eur(state.cash)}) : "
+            f"{len(refused_for_cash)} opération(s) refusée(s), dans l'ordre de la liste."
         )
     return {
         "date_conseil": now.isoformat(timespec="seconds"),
         "cash_disponible": money(state.cash),
-        "variation_hebdo_pct": round(state.variation_pct, 2),
+        "variation_hebdo_pct": round(state.variation_pct, 4),
         "niveau_alerte": state.niveau_alerte,
         "avertissement": warning,
         "resultats": results,
+        "total": {
+            "montant_demande": money(requested),
+            "montant_reel": money(sum((Decimal(str(r["montant_reel_investi"])) for r in accepted), Decimal(0))),
+            "reliquat": money(sum((Decimal(str(r["reliquat_cash"])) for r in accepted), Decimal(0))),
+            "dividende_annuel": money(sum((Decimal(str(r["dividende_annuel_estime_eur"])) for r in accepted), Decimal(0))),
+            "cash_apres": money(available),
+            "nb_operations": len(results),
+            "nb_refusees": len(results) - len(accepted),
+        },
         "mention": MENTION,
         "enregistre": False,
     }
-
