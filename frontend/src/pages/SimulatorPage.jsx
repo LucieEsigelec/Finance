@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Disclaimer from '../components/layout/Disclaimer'
@@ -25,8 +25,13 @@ export default function SimulatorPage() {
   const { data, reload } = useDashboard()
   const toast = useToast()
   const navigate = useNavigate()
-  const [selected, setSelected] = useState([])
-  const [operation, setOperation] = useState('ACHAT')
+  // Arrivée depuis la fiche action (« Acheter / vendre », D-22) : ?action=DSY.PA&operation=VENTE
+  const [params] = useSearchParams()
+  const [selected, setSelected] = useState(() => {
+    const ticker = params.get('action')
+    return STOCKS.some((s) => s.ticker === ticker) ? [ticker] : []
+  })
+  const [operation, setOperation] = useState(() => (params.get('operation') === 'VENTE' ? 'VENTE' : 'ACHAT'))
   const [amounts, setAmounts] = useState({})
   const [errors, setErrors] = useState({})
   const [simulation, setSimulation] = useState(null)
