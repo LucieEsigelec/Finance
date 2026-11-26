@@ -95,6 +95,31 @@ class SupabaseRepository:
             ).execute()
         return len(rows)
 
+    # --- cours intrajournaliers (migration 004, D-12) -------------------------------
+
+    def upsert_intraday(self, rows: list[dict[str, Any]]) -> int:
+        for start in range(0, len(rows), 500):
+            self.client.table("cours_intraday").upsert(
+                rows[start:start + 500], on_conflict="action_id,horodatage"
+            ).execute()
+        return len(rows)
+
+    def purge_intraday(self, before: datetime) -> None:
+        """Supprime les bougies plus anciennes que ``before`` (toujours avec une condition)."""
+        self.client.table("cours_intraday").delete().lt("horodatage", before.isoformat()).execute()
+
+    def get_intraday(self, action_id: str) -> pd.DataFrame:
+        rows = self._all(
+            self.client.table("cours_intraday").select("horodatage, open, high, low, close, volume")
+            .eq("action_id", action_id).order("horodatage")
+        )
+        df = pd.DataFrame(rows, columns=["horodatage", "open", "high", "low", "close", "volume"])
+        if not df.empty:
+            df["horodatage"] = pd.to_datetime(df["horodatage"], utc=True)
+            for col in ("open", "high", "low", "close"):
+                df[col] = df[col].astype(float)
+        return df
+
     # --- ratios ------------------------------------------------------------------
 
     def get_ratios(self, action_id: str) -> list[dict[str, Any]]:

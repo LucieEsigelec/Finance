@@ -23,9 +23,14 @@ from typing import Any, Callable
 MARKET_TTL = 600.0
 PORTFOLIO_TTL = 30.0
 
-MARKET_READS = {"get_actions", "latest_scores", "get_history", "last_history_date", "get_ratios", "get_articles"}
+MARKET_READS = {
+    "get_actions", "latest_scores", "get_history", "last_history_date", "get_ratios", "get_articles", "get_intraday",
+}
 PORTFOLIO_READS = {"get_portfolio", "get_transactions"}
-MARKET_WRITES = {"update_action", "upsert_history", "save_ratios", "insert_missing_articles", "insert_scores"}
+MARKET_WRITES = {
+    "update_action", "upsert_history", "save_ratios", "insert_missing_articles", "insert_scores",
+    "upsert_intraday", "purge_intraday",
+}
 PORTFOLIO_WRITES = {"execute_transaction", "update_portfolio_week"}
 
 
