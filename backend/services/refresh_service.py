@@ -59,6 +59,9 @@ class MarketCollector:
     def news(self, ticker: str, now: datetime, api_key: str) -> tuple[list[dict[str, Any]], list[str]]:
         return market_data.fetch_news(ticker, now, api_key)
 
+    def intraday(self, ticker: str) -> list[dict[str, Any]]:
+        return market_data.fetch_intraday(ticker)
+
 
 def json_safe(value: Any) -> Any:
     """Remplace NaN / infini par None et les nombres numpy par des nombres Python :
@@ -202,7 +205,7 @@ def open_week_if_needed(repo, today: date, histories: Mapping[str, pd.DataFrame]
 def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now: datetime, news_api_key: str):
     """Collecte d'UNE action (cours, ratios, actualités). Lancée en parallèle pour les 5."""
     ticker, action_id = action["ticker"], action["id"]
-    counts = {"cours": 0, "ratios": 0, "actualites": 0}
+    counts = {"cours": 0, "ratios": 0, "actualites": 0, "intraday": 0}
     errors: list[str] = []
 
     last = repo.last_history_date(action_id)
@@ -229,6 +232,12 @@ def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now:
         counts["actualites"] = repo.insert_missing_articles(action_id, articles, since)
     except Exception as error:
         errors.append(f"{ticker} actualités : {type(error).__name__}: {error}")
+
+    try:  # bougies de 5 min (graphiques 1 jour / 1 semaine) ; table créée par la migration 004
+        rows = collector.intraday(ticker)
+        counts["intraday"] = repo.upsert_intraday([{**r, "action_id": action_id} for r in rows])
+    except Exception as error:
+        errors.append(f"{ticker} intraday : {type(error).__name__}")
 
     price = float(history["close"].iloc[-1]) if not history.empty else _num(action.get("dernier_cours"))
     gathered = {"action": action, "history": history, "dividend": dividend, "price": price}
@@ -280,6 +289,12 @@ def refresh(repo, collector: MarketCollector, now: datetime | None = None, news_
         report["actions"][ticker]["note"] = result["details_piliers"]["note"]
     if scores:
         repo.insert_scores(scores)
+
+    if any(r["intraday"] for r in report["actions"].values()):
+        try:
+            repo.purge_intraday(now - timedelta(days=config.INTRADAY_CONSERVATION_JOURS))
+        except Exception as error:
+            report["erreurs"].append(f"intraday (nettoyage) : {type(error).__name__}")
 
     report["semaine"] = open_week_if_needed(repo, today, {t: g["history"] for t, g in gathered.items()})
     return report

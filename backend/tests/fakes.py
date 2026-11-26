@@ -47,6 +47,8 @@ class FakeRepository:
         ]
         self.history: dict[str, dict[str, dict[str, Any]]] = {a["id"]: {} for a in self.actions}
         self.ratios: list[dict[str, Any]] = []
+        self.intraday: dict[str, dict[str, dict[str, Any]]] = {a["id"]: {} for a in self.actions}
+        self.intraday_table_exists = True
         self.articles: list[dict[str, Any]] = []
         self.scores: list[dict[str, Any]] = []
         self.transactions: list[dict[str, Any]] = []
@@ -87,6 +89,30 @@ class FakeRepository:
         for row in rows:
             self.history[row["action_id"]][row["date_seance"]] = row
         return len(rows)
+
+    # cours intrajournaliers
+    def upsert_intraday(self, rows):
+        if not self.intraday_table_exists:
+            raise RuntimeError('relation "cours_intraday" does not exist')
+        for row in rows:
+            self.intraday[row["action_id"]][row["horodatage"]] = row
+        return len(rows)
+
+    def purge_intraday(self, before):
+        for bars in self.intraday.values():
+            for stamp in [s for s in bars if pd.Timestamp(s) < pd.Timestamp(before)]:
+                del bars[stamp]
+
+    def get_intraday(self, action_id):
+        if not self.intraday_table_exists:
+            raise RuntimeError('relation "cours_intraday" does not exist')
+        rows = sorted(self.intraday[action_id].values(), key=lambda r: r["horodatage"])
+        df = pd.DataFrame(rows, columns=["horodatage", "open", "high", "low", "close", "volume"])
+        if not df.empty:
+            df["horodatage"] = pd.to_datetime(df["horodatage"], utc=True)
+            for col in ("open", "high", "low", "close"):
+                df[col] = df[col].astype(float)
+        return df
 
     # ratios
     def get_ratios(self, action_id):
@@ -189,6 +215,21 @@ class FakeCollector:
             ],
             dividende_12_mois=Decimal("0.29") if ticker == "DSY.PA" else Decimal("3.00"),
         )
+
+    def intraday(self, ticker):
+        """5 séances de bougies de 5 min (9 h – 17 h 30, heure de Paris)."""
+        rng = np.random.default_rng(sum(map(ord, ticker)) + 1)
+        days = pd.bdate_range(end=self.end, periods=5)
+        stamps = [
+            pd.Timestamp(f"{d.date()} 09:00", tz="Europe/Paris") + pd.Timedelta(minutes=5 * i)
+            for d in days for i in range(102)
+        ]
+        closes = 100 * np.cumprod(1 + rng.normal(0, 0.001, len(stamps)))
+        return [
+            {"horodatage": s.tz_convert("UTC").isoformat(), "open": f"{c:.2f}", "high": f"{c * 1.001:.2f}",
+             "low": f"{c * 0.999:.2f}", "close": f"{c:.2f}", "volume": 10}
+            for s, c in zip(stamps, closes)
+        ]
 
     def news(self, ticker, now, api_key):
         if "news" in self.fail:

@@ -21,7 +21,8 @@ import { COLOR_BY_TICKER, STOCKS } from '../lib/stocks'
 // Un seul appel GET /api/stocks/{ticker} alimente les deux onglets (UI §5.3) ;
 // les périodes et les cases des indicateurs ne changent que l'affichage.
 
-const PERIODS = [['1M', 31], ['3M', 92], ['6M', 183], ['1A', 366]]
+// 1J et 1S : bougies de 5 min et de 30 min (cours intrajournaliers, D-12) ; au-delà, bougies d'un jour.
+const PERIODS = [['1J', 'jour'], ['1S', 'semaine'], ['1M', 31], ['3M', 92], ['6M', 183], ['1A', 366]]
 const INDICATORS = [['mm20', 'MM20', 'chart-ma20'], ['mm50', 'MM50', 'chart-ma50'], ['mm200', 'MM200', 'chart-ma200'], ['bollinger', 'Bollinger', 'brand']]
 
 export default function StockDetailPage() {
@@ -47,9 +48,12 @@ export default function StockDetailPage() {
   const sameStock = state.data?.entete.ticker === code
 
   const series = useMemo(() => {
-    const all = state.data?.graphique.series || []
+    const graph = state.data?.graphique
+    const span = PERIODS.find(([p]) => p === period)[1]
+    if (typeof span === 'string') return graph?.intraday?.[span] || []
+    const all = graph?.series || []
     if (!all.length) return all
-    const days = PERIODS.find(([p]) => p === period)[1]
+    const days = span
     const last = new Date(all[all.length - 1].date)
     const start = new Date(last.getTime() - days * 86400000).toISOString().slice(0, 10)
     return all.filter((row) => row.date >= start)
@@ -69,6 +73,7 @@ export default function StockDetailPage() {
 
   const { data } = state
   const { graphique } = data
+  const intraday = period === '1J' || period === '1S'
   const rsiLabel = graphique.rsi.valeur !== null ? `${graphique.rsi.valeur} · ${graphique.rsi.zone}` : null
 
   return (
@@ -135,9 +140,18 @@ export default function StockDetailPage() {
               </div>
             </div>
             {series.length ? (
-              <PriceChart series={series} show={show} rsiLabel={rsiLabel} macdLabel={graphique.macd.libelle} />
+              <>
+                <PriceChart series={series} show={show} rsiLabel={rsiLabel} macdLabel={graphique.macd.libelle} intraday={intraday} />
+                {intraday && (
+                  <p className="mt-2 mb-0 text-[13px] text-muted">
+                    {period === '1J' ? 'Dernière séance, bougies de 5 minutes' : '5 dernières séances, bougies de 30 minutes'}, heure de Paris. Indicateurs calculés sur ces bougies ; le conseil, lui, repose sur les cours de clôture.
+                  </p>
+                )}
+              </>
             ) : (
-              <p className="m-0 text-muted">Aucun cours disponible : lancez une actualisation des données.</p>
+              <p className="m-0 text-muted">
+                {intraday ? 'Cours intrajournaliers pas encore disponibles : ils arrivent avec la prochaine actualisation.' : 'Aucun cours disponible : lancez une actualisation des données.'}
+              </p>
             )}
           </section>
           <div className="flex flex-col gap-6">

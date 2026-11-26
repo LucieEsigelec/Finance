@@ -135,6 +135,10 @@ Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week
 
 **En arrière-plan** : le bouton « Actualiser » reçoit tout de suite la réponse « lancée » (code 202) ; l'interface demande toutes les 2 secondes où en est le travail (`GET /api/market/refresh/status`), puis recharge l'écran. Une actualisation au plus toutes les 2 minutes ; NewsAPI au plus toutes les 15 minutes, pour rester dans son quota gratuit.
 
+### 5.3 bis Les cours intrajournaliers (graphiques 1 jour / 1 semaine)
+
+La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** sur les 5 dernières séances (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004). Les bougies de plus de 10 jours sont supprimées, la table reste petite (environ 2 500 lignes). L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris. Le conseil, lui, reste calculé sur les cours de clôture.
+
 ### 5.3 Deux précisions de calcul
 
 - **Dividende annuel** : certaines entreprises versent 4 fois par an (TotalEnergies). Si on additionne simplement les versements d'une année civile, un versement daté du 2 janvier ou du 31 décembre fausse tout (+35 % au lieu de +8 %). On prend donc le versement moyen de l'année × le nombre habituel de versements.
@@ -234,7 +238,7 @@ frontend/src/
 
 - **Tableau de bord partagé** : `DashboardContext` appelle `GET /api/dashboard` une fois à l'ouverture. La même réponse sert à l'accueil, au tableau de bord, à l'en-tête du simulateur, à la date de la NavBar et au bandeau d'alerte. Elle est redemandée après une opération ou une actualisation.
 - **Bandeau d'alerte** : `AppLayout` l'affiche sous la NavBar, sur toutes les pages, dès que le niveau n'est pas AUCUN.
-- **Fiche action** : un seul appel `GET /api/stocks/{ticker}` ; les onglets, les périodes (1M à 1A) et les cases des indicateurs ne changent que l'affichage. Le simulateur de dividende calcule dans le navigateur.
+- **Fiche action** : un seul appel `GET /api/stocks/{ticker}` ; les onglets, les périodes (1J, 1S, 1M à 1A) et les cases des indicateurs ne changent que l'affichage. 1J et 1S utilisent les bougies intrajournalières (`graphique.intraday`). Le simulateur de dividende calcule dans le navigateur.
 - **Historique** : chaque changement de période, de titre ou de page rappelle `GET /api/portfolio/history`.
 
 ### 7.5 Le seul chemin qui enregistre : le simulateur

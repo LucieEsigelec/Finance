@@ -334,3 +334,27 @@ def test_threshold_change_applies_immediately_without_refresh(api, repo, monkeyp
     assert not any("sous le seuil" in r for r in after["raisons"])
     dashboard = api.get("/api/dashboard").json()
     assert next(a for a in dashboard["actions"] if a["ticker"] == "TTE.PA")["conseil"] == "ACHAT"
+
+
+# --- Graphiques 1 jour / 1 semaine (D-12) ------------------------------------------------
+
+
+def test_stock_detail_has_intraday_day_and_week_views(api):
+    intraday = api.get("/api/stocks/DSY.PA").json()["graphique"]["intraday"]
+    assert intraday["disponible"] is True
+    day, week = intraday["jour"], intraday["semaine"]
+    assert len(day) == 102  # une séance de 9 h à 17 h 30, bougies de 5 min
+    assert day[0]["time"] % 86400 == 9 * 3600  # 9 h 00 affiché à l'heure de Paris
+    assert 80 <= len(week) <= 90  # 5 séances, bougies de 30 min
+    assert all(b["time"] < a["time"] for b, a in zip(week, week[1:]))
+    assert {"open", "close", "mm20", "rsi", "macd_hist"} <= set(day[-1])
+
+
+def test_intraday_unavailable_until_migration_004(api, repo):
+    repo.intraday_table_exists = False
+    stocks._last_refresh["at"] = 0.0
+    report = api.post("/api/market/refresh", params={"attendre": "true"}).json()
+    assert any("intraday" in e for e in report["erreurs"])
+    assert len(report["actions"]) == 5  # le reste de l'actualisation a fonctionné
+    body = api.get("/api/stocks/DSY.PA").json()["graphique"]["intraday"]
+    assert body == {"disponible": False, "jour": [], "semaine": [], "derniere_bougie": None}

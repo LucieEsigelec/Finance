@@ -208,3 +208,26 @@ def test_quarterly_dividends_are_annualized_by_usual_frequency():
 )
 def test_news_relevance_filter(ticker, titre, attendu):
     assert market_data.is_relevant(ticker, titre) is attendu
+
+
+def test_refresh_stores_intraday_bars_and_purges_old_ones():
+    repo = FakeRepository()
+    dsy = repo.action_by_ticker("DSY.PA")["id"]
+    repo.intraday[dsy]["2026-11-01T09:00:00+00:00"] = {
+        "action_id": dsy, "horodatage": "2026-11-01T09:00:00+00:00", "close": "1"}
+    report = refresh(repo, FakeCollector(NOW.date()), NOW)
+    assert report["actions"]["DSY.PA"]["intraday"] == 510
+    assert "2026-11-01T09:00:00+00:00" not in repo.intraday[dsy]  # plus de 10 jours : supprimée
+    assert len(repo.intraday[dsy]) == 510
+
+
+def test_fetch_intraday_formats_yfinance_rows(monkeypatch):
+    frame = pd.DataFrame(
+        {"Open": [22.1], "High": [22.2], "Low": [22.0], "Close": [22.15], "Volume": [1200]},
+        index=pd.to_datetime(["2026-11-26 09:05"]).tz_localize("Europe/Paris"),
+    )
+    monkeypatch.setattr(market_data.yf, "Ticker", lambda t: SimpleNamespace(history=lambda **kw: frame))
+    assert market_data.fetch_intraday("DSY.PA") == [{
+        "horodatage": "2026-11-26T08:05:00+00:00", "open": "22.10", "high": "22.20", "low": "22.00",
+        "close": "22.15", "volume": 1200,
+    }]

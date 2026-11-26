@@ -26,9 +26,11 @@ function baseOptions(height) {
   }
 }
 
-const points = (rows, key) => rows.map((r) => (r[key] === null ? { time: r.date } : { time: r.date, value: r[key] }))
+// Bougies d'un jour : r.date ('2026-11-25') ; bougies intrajournalières : r.time (secondes).
+const timeOf = (r) => r.time ?? r.date
+const points = (rows, key) => rows.map((r) => (r[key] === null ? { time: timeOf(r) } : { time: timeOf(r), value: r[key] }))
 
-export default function PriceChart({ series, show, rsiLabel, macdLabel }) {
+export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday = false }) {
   const mainRef = useRef(null)
   const rsiRef = useRef(null)
   const macdRef = useRef(null)
@@ -36,7 +38,12 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel }) {
   useEffect(() => {
     if (!series.length) return undefined
     const main = createChart(mainRef.current, baseOptions(300))
-    const rsi = createChart(rsiRef.current, { ...baseOptions(96), timeScale: { visible: false } })
+    main.applyOptions({ timeScale: { timeVisible: intraday, secondsVisible: false } })
+    const rsi = createChart(rsiRef.current, {
+      ...baseOptions(96),
+      timeScale: { visible: false },
+      localization: { locale: 'fr-FR', priceFormatter: (v) => Math.round(v).toString() },
+    })
     const macd = createChart(macdRef.current, { ...baseOptions(96), timeScale: { visible: false } })
 
     const brand = cssVar('brand')
@@ -53,7 +60,7 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel }) {
     main.addSeries(CandlestickSeries, {
       upColor: cssVar('buy'), downColor: cssVar('sell'), borderVisible: false,
       wickUpColor: cssVar('buy'), wickDownColor: cssVar('sell'),
-    }).setData(series.map((r) => ({ time: r.date, open: r.open, high: r.high, low: r.low, close: r.close })))
+    }).setData(series.map((r) => ({ time: timeOf(r), open: r.open, high: r.high, low: r.low, close: r.close })))
     const lines = [['mm20', 'chart-ma20'], ['mm50', 'chart-ma50'], ['mm200', 'chart-ma200']]
     lines.filter(([key]) => show[key]).forEach(([key, color]) => {
       main.addSeries(LineSeries, { color: cssVar(color), lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
@@ -69,7 +76,7 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel }) {
     ;[30, 70].forEach((price) => rsiLine.createPriceLine({ price, color: cssVar('line-strong'), lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: false }))
 
     macd.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }).setData(
-      series.map((r) => (r.macd_hist === null ? { time: r.date } : { time: r.date, value: r.macd_hist, color: r.macd_hist >= 0 ? cssVar('buy-soft') : cssVar('sell-soft') })),
+      series.map((r) => (r.macd_hist === null ? { time: timeOf(r) } : { time: timeOf(r), value: r.macd_hist, color: r.macd_hist >= 0 ? cssVar('buy-soft') : cssVar('sell-soft') })),
     )
     macd.addSeries(LineSeries, { color: brand, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }).setData(points(series, 'macd'))
     macd.addSeries(LineSeries, { color: cssVar('chart-ma20'), lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }).setData(points(series, 'macd_signal'))
@@ -89,14 +96,14 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel }) {
       handlers.forEach(([chart, handler]) => chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler))
       charts.forEach((chart) => chart.remove())
     }
-  }, [series, show])
+  }, [series, show, intraday])
 
   return (
     <div className="flex flex-col gap-0">
       <div ref={mainRef} className="h-[300px] w-full" aria-label="Graphique des cours" role="img" />
-      <PanelTitle title="RSI 14 jours" detail={rsiLabel} />
+      <PanelTitle title={intraday ? 'RSI 14 bougies' : 'RSI 14 jours'} detail={intraday ? null : rsiLabel} />
       <div ref={rsiRef} className="h-24 w-full" aria-label="RSI 14 jours" role="img" />
-      <PanelTitle title="MACD 12 / 26 / 9" detail={macdLabel} />
+      <PanelTitle title="MACD 12 / 26 / 9" detail={intraday ? null : macdLabel} />
       <div ref={macdRef} className="h-24 w-full" aria-label="MACD 12 / 26 / 9" role="img" />
     </div>
   )

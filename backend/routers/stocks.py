@@ -23,6 +23,9 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
+from zoneinfo import ZoneInfo
+
+import pandas as pd
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 
 import config
@@ -49,6 +52,48 @@ def _num(value: Any, digits: int = 4) -> float | None:
         return None
     value = float(value)
     return None if math.isnan(value) else round(value, digits)
+
+
+PARIS = ZoneInfo("Europe/Paris")
+
+
+def _paris_epoch(stamp: pd.Timestamp) -> int:
+    """Heure de Paris « affichée telle quelle » par Lightweight Charts (qui lit l'UTC)."""
+    local = stamp.tz_convert(PARIS)
+    return int(local.timestamp() + local.utcoffset().total_seconds())
+
+
+def intraday_views(bars: pd.DataFrame) -> dict[str, Any]:
+    """Vue 1J : bougies de 5 min de la dernière séance. Vue 1S : bougies de 30 min sur
+    5 séances. Les indicateurs sont calculés sur les bougies affichées (D-12)."""
+    if bars.empty:
+        return {"disponible": False, "jour": [], "semaine": [], "derniere_bougie": None}
+    df = bars.sort_values("horodatage").copy()
+    df["jour_paris"] = df["horodatage"].dt.tz_convert(PARIS).dt.date
+
+    def rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
+        if frame.empty:
+            return []
+        indicators = compute_indicators(frame.rename(columns={"horodatage": "date_seance"}))
+        return [
+            {"time": _paris_epoch(r["date_seance"]), **{k: _num(r[k]) for k in SERIES}}
+            for r in indicators.to_dict("records")
+        ]
+
+    week = (
+        df.set_index("horodatage")[["open", "high", "low", "close"]]
+        .resample(config.INTRADAY_REGROUPEMENT_SEMAINE)
+        .agg({"open": "first", "high": "max", "low": "min", "close": "last"})
+        .dropna()
+        .reset_index()
+    )
+    last_day = df["jour_paris"].max()
+    return {
+        "disponible": True,
+        "jour": rows(df[df["jour_paris"] == last_day][["horodatage", "open", "high", "low", "close"]]),
+        "semaine": rows(week),
+        "derniere_bougie": df["horodatage"].iloc[-1].isoformat(),
+    }
 
 
 def _age_label(days: float) -> str:
@@ -78,6 +123,14 @@ def macd_label(signal: float | None) -> str | None:
     }.get(signal)
 
 
+def _safe_intraday(repo, action_id: str) -> pd.DataFrame:
+    """Bougies de 5 min, ou rien si la table n'existe pas encore (migration 004 non exécutée)."""
+    try:
+        return repo.get_intraday(action_id)
+    except Exception:
+        return pd.DataFrame(columns=["horodatage", "open", "high", "low", "close", "volume"])
+
+
 @router.get("/stocks/{ticker}")
 def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(get_now)) -> dict[str, Any]:
     state = load_state(repo)
@@ -89,11 +142,13 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
     held = state.held.get(ticker, 0)
     position_value = Decimal(held) * state.prices[ticker]
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         history_job = pool.submit(repo.get_history, action["id"])
         articles_job = pool.submit(repo.get_articles, action["id"], now - timedelta(days=config.INFO_FENETRE_JOURS))
         ratios_job = pool.submit(repo.get_ratios, action["id"])
+        intraday_job = pool.submit(_safe_intraday, repo, action["id"])
         history, articles, all_ratios = history_job.result(), articles_job.result(), ratios_job.result()
+        intraday = intraday_views(intraday_job.result())
     chart = []
     if not history.empty:
         indicators = compute_indicators(history)
@@ -161,6 +216,7 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
         },
         "graphique": {
             "series": chart,
+            "intraday": intraday,
             "rsi": {"valeur": _num(rsi, 0), "zone": rsi_zone(rsi)},
             "macd": {"libelle": macd_label((tech.get("signaux") or {}).get("macd"))},
         },
