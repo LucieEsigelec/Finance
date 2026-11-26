@@ -1,9 +1,11 @@
-import { Moon, Sun } from 'lucide-react'
+import { LogOut, Moon, Sun } from 'lucide-react'
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useDashboard } from '../../context/DashboardContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useToast } from '../../context/ToastContext'
 import { formatDateTime } from '../../lib/format'
+import LogoutDialog from '../LogoutDialog'
 import Button from '../ui/Button'
 
 // NavBar (UI §4.1, maquette NavBar) : nom de l'application (retour à l'accueil), 6 onglets
@@ -16,6 +18,12 @@ const TABS = [
   { to: '/historique', label: 'Historique' },
   { to: '/profil', label: 'Profil' },
 ]
+
+/** Date des données, version courte pour la barre : « 26 nov., 15:34 » (complète au survol). */
+const stampFormat = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+function shortStamp(iso) {
+  return iso ? stampFormat.format(new Date(iso)).replace(' à ', ', ') : '—'
+}
 
 function Logo() {
   return (
@@ -32,6 +40,7 @@ export default function NavBar() {
   const toast = useToast()
   const { pathname } = useLocation()
   const { resolved, toggle } = useTheme()
+  const [logout, setLogout] = useState(false)
 
   async function onRefresh() {
     try {
@@ -65,7 +74,9 @@ export default function NavBar() {
             </NavLink>
           ))}
         </nav>
-        <span className="hidden text-[13px] text-muted xl:inline">Données du {formatDateTime(data?.date_donnees)}</span>
+        <span className="hidden text-[13px] whitespace-nowrap text-muted lg:inline" title={`Données du ${formatDateTime(data?.date_donnees)}`}>
+          {shortStamp(data?.date_donnees)}
+        </span>
         <button
           type="button"
           onClick={toggle}
@@ -75,9 +86,19 @@ export default function NavBar() {
         >
           {resolved === 'dark' ? <Sun className="size-4" strokeWidth={1.75} /> : <Moon className="size-4" strokeWidth={1.75} />}
         </button>
-        <Button size="sm" onClick={onRefresh} disabled={refreshing}>
-          {refreshing ? 'Actualisation…' : 'Actualiser les données'}
+        <Button size="sm" onClick={onRefresh} disabled={refreshing} title="Actualiser les données">
+          {refreshing ? 'Actualisation…' : 'Actualiser'}
         </Button>
+        <button
+          type="button"
+          onClick={() => setLogout(true)}
+          aria-label="Se déconnecter"
+          title={data?.nom_client ? `Se déconnecter (${data.nom_client})` : 'Se déconnecter'}
+          className="flex size-8 flex-none items-center justify-center rounded-md border border-line-strong text-ink hover:bg-sunken"
+        >
+          <LogOut className="size-4" strokeWidth={1.75} />
+        </button>
+        {logout && <LogoutDialog onClose={() => setLogout(false)} />}
       </div>
     </header>
   )

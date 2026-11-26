@@ -88,3 +88,4 @@ def test_cors_allows_put_for_the_profile(client):
         headers={"Origin": LOCAL, "Access-Control-Request-Method": "PUT", "Access-Control-Request-Headers": "content-type"},
     )
     assert response.status_code == 200 and "PUT" in response.headers["access-control-allow-methods"]
+    assert "DELETE" in response.headers["access-control-allow-methods"]

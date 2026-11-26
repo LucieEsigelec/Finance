@@ -74,3 +74,15 @@ def set_profile(request: ProfileRequest, repo=Depends(get_repo)) -> dict[str, An
         "message": f"Profil « {config.PROFILS_RISQUE[request.profil]['nom']} » enregistré.",
         "profil": profile_summary(after),
     }
+
+
+@router.delete("/profil")
+def logout(repo=Depends(get_repo)) -> dict[str, Any]:
+    """« Se déconnecter » (D-20) : efface le nom et le profil de risque pour revoir le dialogue de
+    bienvenue. Le portefeuille, le cash et les opérations sont conservés. Il n'y a pas de comptes :
+    le portefeuille est partagé, la déconnexion vaut donc pour tous ceux qui l'utilisent."""
+    state = load_state(repo)
+    if "profil_risque" not in state.portfolio:
+        raise HTTPException(status_code=409, detail="La migration 005 de la base n'a pas été exécutée.")
+    repo.reset_portfolio_profile(state.portfolio["id"])
+    return {"message": "Vous êtes déconnecté : le nom et le profil de risque ont été effacés."}

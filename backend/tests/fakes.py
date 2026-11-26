@@ -182,6 +182,10 @@ class FakeRepository:
         if nom_client:
             self.portfolio["nom_client"] = nom_client
 
+    def reset_portfolio_profile(self, portfolio_id):
+        self.portfolio["profil_risque"] = None
+        self.portfolio["nom_client"] = None
+
     def get_transactions(self, portfolio_id):
         return [dict(t) for t in sorted(self.transactions, key=lambda t: t["date_execution"])]
 

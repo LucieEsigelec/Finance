@@ -251,6 +251,13 @@ class SupabaseRepository:
             payload["nom_client"] = nom_client
         self._run(self.client.table("portefeuille").update(payload).eq("id", portfolio_id), write=True)
 
+    def reset_portfolio_profile(self, portfolio_id: str) -> None:
+        """Déconnexion (D-20) : efface nom et profil ; portefeuille et opérations sont conservés."""
+        self._run(
+            self.client.table("portefeuille").update({"profil_risque": None, "nom_client": None}).eq("id", portfolio_id),
+            write=True,
+        )
+
     def get_transactions(self, portfolio_id: str) -> list[dict[str, Any]]:
         rows = self._all(
             self.client.table("transactions").select("*, actions(ticker, nom)")

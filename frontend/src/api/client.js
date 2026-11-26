@@ -50,6 +50,8 @@ export const api = {
   /** PUT /api/profil — enregistre le profil de risque choisi */
   setProfile: (profil, nomClient) =>
     request('/api/profil', { method: 'PUT', body: nomClient ? { profil, nom_client: nomClient } : { profil } }),
+  /** DELETE /api/profil — « Se déconnecter » : efface nom et profil (D-20) */
+  logout: () => request('/api/profil', { method: 'DELETE' }),
   /** POST /api/market/refresh — lance l'actualisation (elle continue en arrière-plan) */
   refresh: () => request('/api/market/refresh', { method: 'POST' }),
   /** GET /api/market/refresh/status — où en est l'actualisation */

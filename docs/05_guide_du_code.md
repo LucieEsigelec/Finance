@@ -291,6 +291,8 @@ Les profils sont définis dans `config.py` (`PROFILS_RISQUE`). Le choix est enre
 
 **Première connexion** : tant qu'aucun profil n'a été choisi, le tableau de bord le signale (`profil.a_choisir`) et un **dialogue de bienvenue** (`components/WelcomeDialog.jsx`) demande le nom du client et son profil. « Plus tard » le referme pour la session ; il revient à la visite suivante.
 
+**Se déconnecter** (bouton dans la barre de navigation et sur la page Profil) : `DELETE /api/profil` efface le nom et le profil de risque, puis l'application se recharge sur le dialogue de bienvenue. Le portefeuille, le cash et les opérations sont conservés. Comme il n'y a pas de comptes (un seul portefeuille partagé), la déconnexion vaut pour tous ceux qui l'utilisent.
+
 ### 9.2 Le thème clair ou sombre
 
 `context/ThemeContext.jsx` garde le choix (clair, sombre ou « comme l'ordinateur ») dans le navigateur et pose `data-theme="dark"` sur la page ; les couleurs sombres de la charte (`tokens.css`) prennent alors le relais, sans changer une ligne des composants. Un petit script dans `index.html` applique le thème avant l'affichage (pas de flash blanc). Les graphiques des cours sont redessinés quand le thème change, car ils lisent les couleurs au moment du dessin.
