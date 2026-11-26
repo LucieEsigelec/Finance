@@ -36,9 +36,9 @@ async function request(path, { method = 'GET', body, params } = {}) {
 export const api = {
   /** GET /api/dashboard — accueil, tableau de bord, en-tête du simulateur, alerte */
   dashboard: () => request('/api/dashboard'),
-  /** POST /api/simulate — conseil sur une opération, rien n'est enregistré */
-  simulate: (tickers, operation, montant) =>
-    request('/api/simulate', { method: 'POST', body: { tickers, operation, montant_eur: montant } }),
+  /** POST /api/simulate — conseil sur une opération, rien n'est enregistré.
+   *  lines = [{ ticker, montant_eur }, …] : un montant par action (D-14). */
+  simulate: (lines, operation) => request('/api/simulate', { method: 'POST', body: { operation, operations: lines } }),
   /** POST /api/transactions — enregistre une opération confirmée */
   recordTransaction: (payload) => request('/api/transactions', { method: 'POST', body: payload }),
   /** GET /api/stocks/{ticker} — fiche action, les deux onglets en un appel */

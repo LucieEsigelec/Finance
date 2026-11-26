@@ -37,7 +37,7 @@ from services.info_scoring import impact_score
 from services.sentiment import is_announcement, sentiment
 
 log = logging.getLogger(__name__)
-USER_AGENT = "portefeuille-500k/0.1 (outil d'aide a la decision)"
+USER_AGENT = "primeinvest/0.1 (outil d'aide a la decision)"
 
 
 def _round(value: float | None, digits: int = 2) -> str | None:
@@ -75,10 +75,11 @@ def fetch_history(ticker: str, since: date | None) -> list[dict[str, Any]]:
     return rows
 
 
-def fetch_intraday(ticker: str) -> list[dict[str, Any]]:
-    """Bougies de 5 minutes des 5 dernières séances (graphiques 1 jour / 1 semaine, D-12)."""
+def fetch_intraday(ticker: str, period: str | None = None) -> list[dict[str, Any]]:
+    """Bougies de 5 minutes (graphiques 1 jour / 1 semaine, D-12) : les 5 dernières séances,
+    ou un mois au premier chargement (``period="1mo"``)."""
     raw = yf.Ticker(ticker).history(
-        period=config.INTRADAY_PERIODE, interval=config.INTRADAY_INTERVALLE, auto_adjust=False
+        period=period or config.INTRADAY_PERIODE, interval=config.INTRADAY_INTERVALLE, auto_adjust=False
     )
     rows = []
     for stamp, bar in raw.iterrows():

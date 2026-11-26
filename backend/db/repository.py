@@ -108,11 +108,19 @@ class SupabaseRepository:
         """Supprime les bougies plus anciennes que ``before`` (toujours avec une condition)."""
         self.client.table("cours_intraday").delete().lt("horodatage", before.isoformat()).execute()
 
-    def get_intraday(self, action_id: str) -> pd.DataFrame:
-        rows = self._all(
-            self.client.table("cours_intraday").select("horodatage, open, high, low, close, volume")
-            .eq("action_id", action_id).order("horodatage")
+    def oldest_intraday(self, action_id: str) -> datetime | None:
+        rows = (
+            self.client.table("cours_intraday").select("horodatage").eq("action_id", action_id)
+            .order("horodatage").limit(1).execute().data
         )
+        return _ts(rows[0]["horodatage"]) if rows else None
+
+    def get_intraday(self, action_id: str, since: datetime | None = None) -> pd.DataFrame:
+        query = self.client.table("cours_intraday").select("horodatage, open, high, low, close, volume")
+        query = query.eq("action_id", action_id)
+        if since:
+            query = query.gte("horodatage", since.isoformat())
+        rows = self._all(query.order("horodatage"))
         df = pd.DataFrame(rows, columns=["horodatage", "open", "high", "low", "close", "volume"])
         if not df.empty:
             df["horodatage"] = pd.to_datetime(df["horodatage"], utc=True)

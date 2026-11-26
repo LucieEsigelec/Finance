@@ -214,12 +214,17 @@ PREVISION_SEMAINES: Final = 52
 PREVISION_HISTORIQUE_MIN_SEMAINES: Final = 26  # moins de 6 mois → pas de prévision
 HISTORIQUE_INITIAL_ANNEES: Final = 2  # chargé au premier refresh (MM200, 52 semaines)
 
-# Graphiques 1 jour / 1 semaine (D-12) : bougies de 5 min sur 5 séances, regroupées par
-# 30 min pour la vue « semaine » ; on garde 10 jours en base.
-INTRADAY_PERIODE: Final = "5d"
+# Graphiques 1 jour / 1 semaine (D-12, D-14) : bougies de 5 min, regroupées par 30 min pour la
+# vue « semaine ». On garde environ un mois de bougies pour que les indicateurs (jusqu'à la
+# MM200) soient calculés AVANT la première bougie affichée : les courbes commencent avec elle.
 INTRADAY_INTERVALLE: Final = "5m"
+INTRADAY_PERIODE: Final = "5d"  # actualisation habituelle
+INTRADAY_PERIODE_INITIALE: Final = "1mo"  # premier chargement (ou historique trop court)
+INTRADAY_HISTORIQUE_MIN_JOURS: Final = 20  # en dessous, on recharge la période initiale
+INTRADAY_LECTURE_JOURS: Final = 30  # bougies relues pour calculer les indicateurs
 INTRADAY_REGROUPEMENT_SEMAINE: Final = "30min"
-INTRADAY_CONSERVATION_JOURS: Final = 10
+INTRADAY_SEANCES_SEMAINE: Final = 5
+INTRADAY_CONSERVATION_JOURS: Final = 35
 
 # ---------------------------------------------------------------------------
 # 9. Simulateur et transactions — SPEC §10, A.4

@@ -59,8 +59,8 @@ class MarketCollector:
     def news(self, ticker: str, now: datetime, api_key: str) -> tuple[list[dict[str, Any]], list[str]]:
         return market_data.fetch_news(ticker, now, api_key)
 
-    def intraday(self, ticker: str) -> list[dict[str, Any]]:
-        return market_data.fetch_intraday(ticker)
+    def intraday(self, ticker: str, period: str | None = None) -> list[dict[str, Any]]:
+        return market_data.fetch_intraday(ticker, period)
 
 
 def json_safe(value: Any) -> Any:
@@ -234,7 +234,9 @@ def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now:
         errors.append(f"{ticker} actualités : {type(error).__name__}: {error}")
 
     try:  # bougies de 5 min (graphiques 1 jour / 1 semaine) ; table créée par la migration 004
-        rows = collector.intraday(ticker)
+        oldest = repo.oldest_intraday(action_id)
+        enough = oldest is not None and now - oldest >= timedelta(days=config.INTRADAY_HISTORIQUE_MIN_JOURS)
+        rows = collector.intraday(ticker, config.INTRADAY_PERIODE if enough else config.INTRADAY_PERIODE_INITIALE)
         counts["intraday"] = repo.upsert_intraday([{**r, "action_id": action_id} for r in rows])
     except Exception as error:
         errors.append(f"{ticker} intraday : {type(error).__name__}")

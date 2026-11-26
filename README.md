@@ -1,4 +1,4 @@
-# Portefeuille 500k — application d'aide à la décision
+# PrimeInvest — application d'aide à la décision
 
 Projet de groupe : application web qui conseille Achat, Vente ou Rien sur 5 actions du CAC 40 (Dassault Systèmes, TotalEnergies, Capgemini, Hermès, Air Liquide) pour un portefeuille virtuel de 500 000 €.
 

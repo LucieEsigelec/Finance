@@ -68,7 +68,7 @@ def test_supabase_client_is_created_once(monkeypatch):
 def test_module_level_app_uses_env_settings():
     import main
 
-    assert main.app.title.startswith("Portefeuille 500k")
+    assert main.app.title.startswith("PrimeInvest")
     assert config.load_settings().cors_origins  # au moins une origine par défaut
 
 
