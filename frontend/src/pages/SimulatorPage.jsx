@@ -9,7 +9,8 @@ import AdviceCard from '../components/ui/AdviceCard'
 import Button from '../components/ui/Button'
 import { useDashboard } from '../context/DashboardContext'
 import { useToast } from '../context/ToastContext'
-import { eur, formatDateTime, pct, trendClass } from '../lib/format'
+import { eur, formatDateTime, integer, pct, trendClass } from '../lib/format'
+import { STOCKS } from '../lib/stocks'
 
 // Simulateur (/simulateur) — EF-02, RG-02, RG-03, RG-05, maquettes 03 et 04.
 // Seul chemin d'écriture : Simuler → Valider → ConfirmDialog → POST /api/transactions → tableau de bord.
@@ -51,7 +52,25 @@ export default function SimulatorPage() {
 
   const total = selected.reduce((sum, t) => sum + (parseAmount(amounts[t] || '') || 0), 0)
 
+  // Vente : actions détenues et cours, pour afficher la position et bloquer une vente trop grande (D-19).
+  const holdings = Object.fromEntries((data?.actions || []).map((a) => [a.ticker, { detenues: a.detenues || 0, cours: a.cours }]))
+  const sellErrors = operation === 'VENTE'
+    ? Object.fromEntries(
+        selected.flatMap((ticker) => {
+          const held = holdings[ticker]
+          if (!held) return []
+          const name = STOCKS.find((s) => s.ticker === ticker)?.nom || ticker
+          if (!held.detenues) return [[ticker, `Vous ne détenez aucune action ${name}`]]
+          const max = held.detenues * held.cours
+          const amount = parseAmount(amounts[ticker] || '')
+          return amount > max + 0.005 ? [[ticker, `Vous ne détenez que ${integer(held.detenues)} actions (≈ ${eur(max)})`]] : []
+        }),
+      )
+    : {}
+  const blocked = Object.keys(sellErrors).length > 0
+
   async function onSimulate() {
+    if (blocked) return
     if (!selected.length) {
       toast('Cochez au moins une action et indiquez son montant.', 'error')
       return
@@ -145,7 +164,9 @@ export default function SimulatorPage() {
           onOperation={setOperation}
           amounts={amounts}
           onAmount={changeAmount}
-          errors={errors}
+          errors={{ ...sellErrors, ...Object.fromEntries(Object.entries(errors).filter(([, message]) => message)) }}
+          holdings={holdings}
+          blocked={blocked}
           total={total}
           cash={data?.cash_disponible}
           onSimulate={onSimulate}

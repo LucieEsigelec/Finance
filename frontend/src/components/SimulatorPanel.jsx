@@ -1,4 +1,4 @@
-import { eur } from '../lib/format'
+import { eur, integer } from '../lib/format'
 import { STOCKS } from '../lib/stocks'
 import Button from './ui/Button'
 import StockCheckbox from './ui/StockCheckbox'
@@ -6,8 +6,10 @@ import StockCheckbox from './ui/StockCheckbox'
 // SimulatorPanel (fichier du squelette, D-02) : le formulaire « Votre opération » de la page
 // Simulateur (UI §4.4). Une ligne par action : la case à cocher et, à côté, le montant que le
 // client veut investir (ou vendre) sur cette action (D-14). En bas, le total de l'opération
-// comparé au cash disponible. Le panneau ne fait aucun appel : la page reçoit la demande.
-export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, operation, onOperation, errors, total, cash, onSimulate, loading }) {
+// comparé au cash disponible. En vente, chaque action cochée affiche le nombre d'actions détenues ;
+// vendre plus que ce que l'on possède met la case en rouge et grise « Simuler » (D-19).
+// Le panneau ne fait aucun appel : la page reçoit la demande.
+export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, operation, onOperation, errors, total, cash, holdings = {}, blocked = false, onSimulate, loading }) {
   const isBuy = operation === 'ACHAT'
   const over = isBuy && cash !== undefined && cash !== null && total > cash
   return (
@@ -67,7 +69,17 @@ export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, 
                   <span className="ml-2 text-muted">€</span>
                 </div>
               </div>
-              {error && <div role="alert" className="text-right text-[13px] font-medium text-sell">{error}</div>}
+              {error ? (
+                <div role="alert" className="text-right text-[13px] font-medium text-sell">{error}</div>
+              ) : (
+                !isBuy && checked && holdings[stock.ticker] && (
+                  <div className="text-right text-[13px] text-muted">
+                    {holdings[stock.ticker].detenues
+                      ? `Vous détenez ${integer(holdings[stock.ticker].detenues)} action${holdings[stock.ticker].detenues > 1 ? 's' : ''} · ≈ ${eur(holdings[stock.ticker].detenues * holdings[stock.ticker].cours)}`
+                      : 'Vous ne détenez aucune action de cette entreprise'}
+                  </div>
+                )
+              )}
             </div>
           )
         })}
@@ -88,11 +100,24 @@ export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, 
             <span className="num">{eur(over ? total - cash : cash - total)}</span>
           </div>
         )}
+        {!isBuy && (
+          <>
+            <div className="flex justify-between text-[13px] text-muted">
+              <span>Valeur détenue (actions cochées)</span>
+              <span className="num">{eur(selected.reduce((sum, t) => sum + (holdings[t] ? holdings[t].detenues * holdings[t].cours : 0), 0))}</span>
+            </div>
+            <div className="flex justify-between text-[13px] text-muted">
+              <span>Cash après la vente (au plus)</span>
+              <span className="num">{eur((cash || 0) + total)}</span>
+            </div>
+          </>
+        )}
         {over && <p className="mt-2 mb-0 text-[13px] text-sell">Le total dépasse votre cash : les dernières lignes seront refusées.</p>}
+        {blocked && <p className="mt-2 mb-0 text-[13px] text-sell">Vous ne pouvez pas vendre plus d'actions que vous n'en possédez : corrigez les montants en rouge.</p>}
       </section>
 
       <div>
-        <Button type="submit" variant="primary" disabled={loading}>{loading ? 'Calcul…' : 'Simuler'}</Button>
+        <Button type="submit" variant="primary" disabled={loading || blocked}>{loading ? 'Calcul…' : 'Simuler'}</Button>
       </div>
     </form>
   )
