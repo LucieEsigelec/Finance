@@ -6,7 +6,7 @@ import LoadingState from '../components/layout/LoadingState'
 import DecisionBadge from '../components/ui/DecisionBadge'
 import KpiCard from '../components/ui/KpiCard'
 import { useDashboard } from '../context/DashboardContext'
-import { eurKpi, formatDateTime, formatLongDate, pct, pctPlain } from '../lib/format'
+import { eurKpi, eurSigned, formatDateTime, formatLongDate, pct, pctPlain, trendClass } from '../lib/format'
 import { COLOR_BY_TICKER } from '../lib/stocks'
 
 // Accueil (/) — maquette 01 : saluer le client, résumer sa semaine, l'orienter (UI §4.2).
@@ -20,7 +20,7 @@ const LINKS = [
 const alertText = { AUCUN: 'Aucune alerte de perte', APPROCHE: 'Proche de la limite de perte', ATTEINT: 'Limite de perte atteinte' }
 
 export default function AccueilPage() {
-  const { data, loading, error, reload } = useDashboard()
+  const { data, loading, error, reload, refreshing } = useDashboard()
   if (loading && !data) return <LoadingState rows={2} />
   if (error && !data) return <ErrorState error={error} onRetry={reload} />
 
@@ -36,13 +36,23 @@ export default function AccueilPage() {
           <p className="mt-2 mb-0 text-[18px] text-muted">Bienvenue sur votre portefeuille de {eurKpi(data.capital_initial)}. Voici où vous en êtes cette semaine.</p>
         </div>
         <span className="inline-flex items-center gap-2 self-start rounded-md bg-buy-soft px-3 py-1.5 text-[13px] font-semibold text-buy sm:self-auto">
-          <span className="size-2 rounded-full bg-buy" aria-hidden="true" /> Données à jour · {formatDateTime(data.date_donnees)}
+          <span className="size-2 rounded-full bg-buy" aria-hidden="true" /> {refreshing ? 'Actualisation en cours…' : `Données à jour · ${formatDateTime(data.date_donnees)}`}
         </span>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <KpiCard label="Valeur du portefeuille" value={eurKpi(data.capital_total)} delta={data.variation_depuis_depart_pct} deltaLabel="depuis le départ" />
-        <KpiCard label="Cette semaine" value={pct(data.variation_hebdo_pct)} hint={alertText[data.niveau_alerte]} valueClassName={data.variation_hebdo_pct < 0 ? 'text-sell' : ''} />
+        <KpiCard
+          label="Valeur du portefeuille"
+          value={eurKpi(data.capital_total)}
+          delta={data.variation_depuis_depart_pct}
+          deltaLabel={`depuis le départ (${eurSigned(data.variation_depuis_depart_eur)})`}
+        />
+        <KpiCard
+          label="Cette semaine"
+          value={pct(data.variation_hebdo_pct)}
+          hint={`${eurSigned(data.variation_hebdo_eur)} · ${alertText[data.niveau_alerte]}`}
+          valueClassName={trendClass(data.variation_hebdo_pct)}
+        />
         <KpiCard label="Cash disponible" value={eurKpi(data.cash_disponible)} hint={`${pctPlain(data.cash_pct)} du capital`} />
       </div>
 

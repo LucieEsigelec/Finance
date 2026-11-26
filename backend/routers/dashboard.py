@@ -13,10 +13,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 import config
-from routers.deps import get_now, get_repo, money
+from routers import refresh_control
+from routers.deps import get_collector, get_now, get_repo, money
 from services.decision_engine import ATTEINT
 from services.portfolio_service import MENTION, load_state, week_bounds, with_alert
 from services.ratio_scoring import estimated_dividend
@@ -56,8 +57,21 @@ def stock_row(ticker: str, state, include_reasons: bool = True) -> dict[str, Any
 
 
 @router.get("/dashboard")
-def dashboard(repo=Depends(get_repo), now: datetime = Depends(get_now)) -> dict[str, Any]:
+def dashboard(
+    background: BackgroundTasks,
+    repo=Depends(get_repo),
+    collector=Depends(get_collector),
+    now: datetime = Depends(get_now),
+) -> dict[str, Any]:
     state = load_state(repo)
+    # D-13 : données de plus d'une heure → actualisation lancée en arrière-plan ; la réponse
+    # part tout de suite avec les données actuelles, l'interface rechargera à la fin.
+    auto = False
+    if refresh_control.is_stale(state.date_donnees, now):
+        outcome, _ = refresh_control.reserve()
+        if outcome == "ok":
+            background.add_task(refresh_control.run, repo, collector)
+            auto = True
     portfolio = state.portfolio
     capital = portfolio["capital_initial"]
     invested = state.value - state.cash
@@ -72,8 +86,10 @@ def dashboard(repo=Depends(get_repo), now: datetime = Depends(get_now)) -> dict[
         "cash_disponible": money(state.cash),
         "cash_pct": round(float(state.cash / state.value * 100), 1) if state.value else None,
         "part_investie_pct": round(float(invested / state.value * 100), 1) if state.value else 0.0,
-        "variation_depuis_depart_pct": round(float((state.value / capital - 1) * 100), 2),
-        "variation_hebdo_pct": round(state.variation_pct, 2),
+        "variation_depuis_depart_pct": round(float((state.value / capital - 1) * 100), 4),
+        "variation_depuis_depart_eur": money(state.value - capital),
+        "variation_hebdo_pct": round(state.variation_pct, 4),
+        "variation_hebdo_eur": money(state.value - portfolio["val_semaine_prec"]),
         "val_semaine_prec": money(portfolio["val_semaine_prec"]),
         "niveau_alerte": state.niveau_alerte,
         "alerte_perte_10pct": state.niveau_alerte == ATTEINT,
@@ -81,5 +97,9 @@ def dashboard(repo=Depends(get_repo), now: datetime = Depends(get_now)) -> dict[
         "semaine": {"debut": monday.isoformat(), "fin": friday.isoformat()},
         "nb_titres_detenus": len(state.held),
         "actions": [stock_row(t, state) for t in config.TICKERS if t in state.actions],
+        "actualisation": {
+            "en_cours": refresh_control.state["en_cours"],
+            "lancee_automatiquement": auto,
+        },
         "mention": MENTION,
     }

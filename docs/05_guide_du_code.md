@@ -135,6 +135,16 @@ Enfin, la première actualisation de la semaine **ouvre la semaine** (`open_week
 
 **En arrière-plan** : le bouton « Actualiser » reçoit tout de suite la réponse « lancée » (code 202) ; l'interface demande toutes les 2 secondes où en est le travail (`GET /api/market/refresh/status`), puis recharge l'écran. Une actualisation au plus toutes les 2 minutes ; NewsAPI au plus toutes les 15 minutes, pour rester dans son quota gratuit.
 
+### 5.2 bis Quand l'application s'actualise-t-elle ?
+
+Trois mécanismes, du plus fiable au renfort :
+
+1. **À la consultation** : quand quelqu'un ouvre le site et que les données ont plus d'une heure, l'API (`routers/dashboard.py`) lance elle-même l'actualisation en arrière-plan. L'écran s'affiche tout de suite avec les données actuelles, puis se recharge une vingtaine de secondes plus tard (le badge de l'accueil indique « Actualisation en cours… »).
+2. **Page ouverte** : l'interface relit le tableau de bord toutes les 5 minutes, et quand on revient sur l'onglet.
+3. **Tâche planifiée GitHub Actions** (`.github/workflows/refresh.yml`) : chaque heure en séance et à 18 h. GitHub peut la retarder de plusieurs heures, c'est pourquoi elle n'est qu'un renfort.
+
+Et à tout moment, le bouton « Actualiser les données » (une fois toutes les 2 minutes au plus). Le code commun est dans `routers/refresh_control.py` : il garantit qu'une seule actualisation tourne à la fois.
+
 ### 5.3 bis Les cours intrajournaliers (graphiques 1 jour / 1 semaine)
 
 La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** sur les 5 dernières séances (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004). Les bougies de plus de 10 jours sont supprimées, la table reste petite (environ 2 500 lignes). L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris. Le conseil, lui, reste calculé sur les cours de clôture.
@@ -230,7 +240,7 @@ frontend/src/
 
 - **L'interface ne parle qu'à l'API**, par `api/client.js` ; son adresse vient de `VITE_API_URL`. Aucune clé n'est dans le frontend.
 - **Aucune couleur en dur** : toutes viennent des variables de `tokens.css`, reliées à Tailwind dans `index.css` (`bg-buy-soft`, `text-sell`…). Les graphiques lisent ces variables avec `cssVar()`.
-- **Formats français** (`lib/format.js`) : `49 972,80 €`, `+3,2 %`, `−1,8 %` avec le vrai signe moins, `25 nov. 2026, 18:02`.
+- **Formats français** (`lib/format.js`) : `49 972,80 €`, `+3,2 %`, `−1,8 %` avec le vrai signe moins, `25 nov. 2026, 18:02`. Les petites variations gardent 2 décimales (`−0,01 %`) et une variation négligeable s'affiche `0,00 %`, sans signe ni couleur ; la performance s'affiche aussi en euros (`−40 €`).
 - **Un conseil a toujours son signe et son mot** : ▲ ACHAT, ▼ VENTE, ■ RIEN (`DecisionBadge`).
 - **La mention « outil d'aide à la décision… »** (`Disclaimer`) est sur chaque écran qui affiche un conseil, une prévision ou un dividende.
 

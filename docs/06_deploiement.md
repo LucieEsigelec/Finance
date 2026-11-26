@@ -55,6 +55,8 @@ Le fichier `.github/workflows/refresh.yml` appelle `POST /api/market/refresh` à
 
 Pour tester tout de suite : onglet **Actions → Actualisation des données → Run workflow**.
 
+> GitHub peut retarder ces tâches de plusieurs heures. Ce n'est pas grave : l'API relance aussi l'actualisation toute seule dès que quelqu'un ouvre le site et que les données ont plus d'une heure (D-13).
+
 ## 5. Les vérifications automatiques
 
 Le fichier `.github/workflows/ci.yml` lance, sur chaque Pull Request, les tests du backend (`pytest`) et la construction du frontend (`npm run build`). Le résultat apparaît en bas de la Pull Request. Rien à configurer.

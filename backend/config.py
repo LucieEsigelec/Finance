@@ -96,6 +96,8 @@ HTTP_TIMEOUT_SECONDES: Final = 20
 REFRESH_INTERVALLE_MIN_SECONDES: Final = 120
 # … et NewsAPI (gratuit : 100 requêtes / jour, 5 par actualisation) au plus toutes les 15 minutes.
 NEWSAPI_INTERVALLE_MIN_SECONDES: Final = 900
+# Données de plus d'une heure : le tableau de bord relance l'actualisation tout seul (D-13).
+DONNEES_AGE_MAX_SECONDES: Final = 3600
 
 # ---------------------------------------------------------------------------
 # 3. Échelle des notes — SPEC §1.2 : note = 50 + 50 × signal
