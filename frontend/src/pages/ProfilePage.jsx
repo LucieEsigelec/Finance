@@ -2,6 +2,7 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import Disclaimer from '../components/layout/Disclaimer'
+import LogoutDialog from '../components/LogoutDialog'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import Button from '../components/ui/Button'
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [logout, setLogout] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -138,6 +140,17 @@ export default function ProfilePage() {
           ))}
         </div>
       </section>
+
+      <section className="card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6" aria-labelledby="titre-session">
+        <div>
+          <h2 id="titre-session">Session</h2>
+          <p className="mt-1 mb-0 text-muted">
+            Se déconnecter efface votre nom et votre profil de risque ; le portefeuille et les opérations sont conservés.
+          </p>
+        </div>
+        <Button onClick={() => setLogout(true)}>Se déconnecter</Button>
+      </section>
+      {logout && <LogoutDialog onClose={() => setLogout(false)} />}
 
       <Disclaimer />
     </div>

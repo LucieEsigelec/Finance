@@ -512,3 +512,16 @@ def test_first_connection_asks_for_profile_and_name(api, repo):
 
 def test_blank_name_is_refused(api):
     assert api.put("/api/profil", json={"profil": "prudent", "nom_client": "   "}).status_code == 422
+
+
+def test_logout_clears_name_and_profile_but_keeps_the_portfolio(api, repo):
+    """D-20 : « Se déconnecter » ramène au dialogue de bienvenue sans toucher au portefeuille."""
+    dsy = repo.action_by_ticker("DSY.PA")["id"]
+    repo.execute_transaction(repo.portfolio["id"], dsy, "ACHAT", 10, {})
+    api.put("/api/profil", json={"profil": "prudent", "nom_client": "M. Dupont"})
+    cash = repo.portfolio["cash_disponible"]
+    response = api.delete("/api/profil")
+    assert response.status_code == 200 and "déconnecté" in response.json()["message"]
+    assert repo.portfolio["profil_risque"] is None and repo.portfolio["nom_client"] is None
+    assert repo.portfolio["cash_disponible"] == cash and len(repo.transactions) == 1
+    assert api.get("/api/dashboard").json()["profil"]["a_choisir"] is True

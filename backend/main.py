@@ -47,7 +47,7 @@ def create_app(settings: config.Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
-        allow_methods=["GET", "POST", "PUT"],  # PUT : profil de risque (D-17)
+        allow_methods=["GET", "POST", "PUT", "DELETE"],  # PUT / DELETE : profil (D-17, D-20)
         allow_headers=["Content-Type"],
     )
 

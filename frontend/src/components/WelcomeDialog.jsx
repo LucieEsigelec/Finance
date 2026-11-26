@@ -8,7 +8,7 @@ import Button from './ui/Button'
 // Dialogue de bienvenue (D-18) : à la première connexion, tant qu'aucun profil de risque n'a
 // été choisi, l'application demande le nom du client et son profil (Prudent, Équilibré,
 // Dynamique). « Plus tard » le referme pour la session ; il reviendra à la prochaine visite.
-const LATER_KEY = 'primeinvest-bienvenue-plus-tard'
+import { WELCOME_LATER_KEY as LATER_KEY } from './LogoutDialog'
 
 export default function WelcomeDialog() {
   const { data, reload } = useDashboard()
