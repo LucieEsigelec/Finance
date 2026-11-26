@@ -177,8 +177,10 @@ class FakeRepository:
         self.portfolio["val_semaine_prec"] = Decimal(str(value))
         self.portfolio["date_ref_semaine"] = monday
 
-    def update_portfolio_profile(self, portfolio_id, profile):
+    def update_portfolio_profile(self, portfolio_id, profile, nom_client=None):
         self.portfolio["profil_risque"] = profile
+        if nom_client:
+            self.portfolio["nom_client"] = nom_client
 
     def get_transactions(self, portfolio_id):
         return [dict(t) for t in sorted(self.transactions, key=lambda t: t["date_execution"])]

@@ -251,7 +251,7 @@ frontend/src/
 - **Tableau de bord partagé** : `DashboardContext` appelle `GET /api/dashboard` une fois à l'ouverture. La même réponse sert à l'accueil, au tableau de bord, à l'en-tête du simulateur, à la date de la NavBar et au bandeau d'alerte. Elle est redemandée après une opération ou une actualisation.
 - **Bandeau d'alerte** : `AppLayout` l'affiche sous la NavBar, sur toutes les pages, dès que le niveau n'est pas AUCUN.
 - **Fiche action** : un seul appel `GET /api/stocks/{ticker}` ; les onglets, les périodes (1J, 1S, 1M à 1A) et les cases des indicateurs ne changent que l'affichage. 1J et 1S utilisent les bougies intrajournalières (`graphique.intraday`). Le simulateur de dividende calcule dans le navigateur.
-- **Historique** : chaque changement de période, de titre ou de page rappelle `GET /api/portfolio/history`.
+- **Historique** : chaque changement de période, de titre ou de page rappelle `GET /api/portfolio/history`. Sur la courbe, les opérations d'un même jour sont regroupées sous un seul repère (achats en vert, ventes en rouge), avec le détail dans l'info-bulle.
 
 ### 7.5 Le seul chemin qui enregistre : le simulateur
 
@@ -289,7 +289,7 @@ Dans l'onglet **Profil**, le client choisit à partir de quelle note on lui cons
 
 Les profils sont définis dans `config.py` (`PROFILS_RISQUE`). Le choix est enregistré dans la colonne `portefeuille.profil_risque` (migration 005) par `PUT /api/profil` (`routers/profile.py`). À chaque affichage, `load_state` lit ce profil et **relit chaque conseil avec ses seuils** (`rederive_advice`) : changer de profil change immédiatement les conseils de tous les écrans, sans recalculer les notes. Le garde-fou de perte (−10 % par semaine) ne dépend pas du profil.
 
-La page montre, pour chaque profil, combien des 5 actions seraient à l'achat, en attente ou à la vente avec les notes du moment : le client voit l'effet avant d'enregistrer.
+**Première connexion** : tant qu'aucun profil n'a été choisi, le tableau de bord le signale (`profil.a_choisir`) et un **dialogue de bienvenue** (`components/WelcomeDialog.jsx`) demande le nom du client et son profil. « Plus tard » le referme pour la session ; il revient à la visite suivante.
 
 ### 9.2 Le thème clair ou sombre
 

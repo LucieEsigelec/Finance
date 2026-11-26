@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { useDashboard } from '../../context/DashboardContext'
+import WelcomeDialog from '../WelcomeDialog'
 import AlertBanner from '../ui/AlertBanner'
 import NavBar from './NavBar'
 
@@ -18,6 +19,7 @@ export default function AppLayout() {
         )}
         <Outlet />
       </main>
+      <WelcomeDialog />
     </div>
   )
 }

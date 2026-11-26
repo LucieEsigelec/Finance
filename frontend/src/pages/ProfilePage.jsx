@@ -5,7 +5,6 @@ import Disclaimer from '../components/layout/Disclaimer'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import Button from '../components/ui/Button'
-import DecisionBadge from '../components/ui/DecisionBadge'
 import { useDashboard } from '../context/DashboardContext'
 import { useTheme } from '../context/ThemeContext'
 import { useToast } from '../context/ToastContext'
@@ -13,16 +12,6 @@ import { note as fmtNote } from '../lib/format'
 
 // Profil (/profil) — D-17 : le client choisit son profil de risque, qui règle les seuils des
 // conseils (Prudent 60 / 40, Équilibré 55 / 45, Dynamique 50 / 40), et le thème clair / sombre.
-
-/** Combien d'actions seraient à ACHAT / RIEN / VENTE avec ces seuils et les notes actuelles. */
-function preview(notes, achat, vente) {
-  const counts = { ACHAT: 0, RIEN: 0, VENTE: 0 }
-  Object.values(notes).forEach((n) => {
-    if (n === null || n === undefined) return
-    counts[n >= achat ? 'ACHAT' : n <= vente ? 'VENTE' : 'RIEN'] += 1
-  })
-  return counts
-}
 
 const THEMES = [
   ['clair', 'Clair', Sun],
@@ -94,7 +83,6 @@ export default function ProfilePage() {
         <div className="grid gap-4 lg:grid-cols-3" role="radiogroup" aria-labelledby="titre-risque">
           {data.profils.map((p) => {
             const active = selected === p.id
-            const counts = preview(data.notes, p.seuil_achat, p.seuil_vente)
             return (
               <label
                 key={p.id}
@@ -111,16 +99,6 @@ export default function ProfilePage() {
                   Achat si note ≥ {fmtNote(p.seuil_achat)} · Vente si note ≤ {fmtNote(p.seuil_vente)}
                 </div>
                 <p className="m-0 text-[13px] text-muted">{p.description}</p>
-                <div className="mt-auto border-t border-line pt-3">
-                  <div className="label-caps mb-2">Avec les notes actuelles</div>
-                  <div className="flex flex-wrap gap-2">
-                    {['ACHAT', 'RIEN', 'VENTE'].map((d) => (
-                      <span key={d} className="flex items-center gap-1 text-[13px]">
-                        <DecisionBadge decision={d} /> × {counts[d]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
               </label>
             )
           })}

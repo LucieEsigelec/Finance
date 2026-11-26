@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import config
 from routers.dashboard import profile_summary
@@ -23,9 +23,22 @@ router = APIRouter(prefix="/api", tags=["profil"])
 
 
 class ProfileRequest(BaseModel):
+    """Profil de risque, et nom du client à la première connexion (dialogue de bienvenue, D-18)."""
+
     model_config = ConfigDict(extra="forbid")
 
     profil: Literal["prudent", "equilibre", "dynamique"]
+    nom_client: str | None = Field(default=None, min_length=1, max_length=80)
+
+    @field_validator("nom_client")
+    @classmethod
+    def clean_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = " ".join(value.split())
+        if not value:
+            raise ValueError("Saisissez votre nom")
+        return value
 
 
 def _profiles() -> list[dict[str, Any]]:
@@ -55,7 +68,7 @@ def set_profile(request: ProfileRequest, repo=Depends(get_repo)) -> dict[str, An
             status_code=409,
             detail="Le profil ne peut pas encore être enregistré : la migration 005 de la base n'a pas été exécutée.",
         )
-    repo.update_portfolio_profile(state.portfolio["id"], request.profil)
+    repo.update_portfolio_profile(state.portfolio["id"], request.profil, nom_client=request.nom_client)
     after = load_state(repo)
     return {
         "message": f"Profil « {config.PROFILS_RISQUE[request.profil]['nom']} » enregistré.",
