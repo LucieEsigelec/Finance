@@ -186,7 +186,8 @@ class SupabaseRepository:
             row["date_pub"] = _ts(row["date_pub"])
         return rows
 
-    def insert_missing_articles(self, action_id: str, articles: list[dict[str, Any]], since: datetime) -> int:
+    def filter_new_articles(self, action_id: str, articles: list[dict[str, Any]], since: datetime) -> list[dict[str, Any]]:
+        """Articles absents de la base (même lien ou même titre), sans doublon entre eux."""
         known = self.get_articles(action_id, since)
         seen_urls = {a["url"] for a in known if a.get("url")}
         seen_titles = {a["titre"].strip().lower() for a in known}
@@ -197,10 +198,20 @@ class SupabaseRepository:
                 continue
             seen_urls.add(article.get("url"))
             seen_titles.add(key)
-            new.append({**article, "action_id": action_id, "date_pub": article["date_pub"].isoformat()})
+            new.append(article)
+        return new
+
+    def insert_missing_articles(self, action_id: str, articles: list[dict[str, Any]], since: datetime) -> int:
+        new = [
+            {**article, "action_id": action_id, "date_pub": article["date_pub"].isoformat()}
+            for article in self.filter_new_articles(action_id, articles, since)
+        ]
         if new:
             self._run(self.client.table("actualites").insert(new), write=True)
         return len(new)
+
+    def update_article_score(self, article_id: str, score: float) -> None:
+        self._run(self.client.table("actualites").update({"score_impact": score}).eq("id", article_id), write=True)
 
     # --- scores ------------------------------------------------------------------
 

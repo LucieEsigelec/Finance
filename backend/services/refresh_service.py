@@ -40,6 +40,7 @@ from services.decision_engine import (
     weekly_returns,
 )
 from services.info_scoring import InfoScoringService
+from services.news_nlp import NlpUnavailable, apply_analysis
 from services.randomness_service import RandomnessService
 from services.ratio_scoring import RatioScoringService
 from services.technical_scoring import TechnicalScoringService
@@ -215,7 +216,9 @@ def intraday_complete(repo, action_id: str, history: pd.DataFrame, now: datetime
     return sessions > 0 and repo.count_intraday(action_id, since) >= expected
 
 
-def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now: datetime, news_api_key: str):
+def collect_stock(
+    repo, collector: MarketCollector, action: dict[str, Any], now: datetime, news_api_key: str, analyzer=None
+):
     """Collecte d'UNE action (cours, ratios, actualités). Lancée en parallèle pour les 5."""
     ticker, action_id = action["ticker"], action["id"]
     counts = {"cours": 0, "ratios": 0, "actualites": 0, "intraday": 0}
@@ -242,7 +245,14 @@ def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now:
         articles, news_errors = collector.news(ticker, now, news_api_key)
         errors += [f"{ticker} {e}" for e in news_errors]
         since = now - timedelta(days=config.INFO_FENETRE_JOURS)
-        counts["actualites"] = repo.insert_missing_articles(action_id, articles, since)
+        new = repo.filter_new_articles(action_id, articles, since)
+        if analyzer is not None and new:  # D-16 : seuls les NOUVEAUX articles vont au modèle
+            try:
+                new = apply_analysis(new, analyzer.analyze(action["nom"], ticker, new))
+                counts["analyse"] = "claude"
+            except NlpUnavailable as error:
+                errors.append(f"{ticker} analyse IA : {error} (lexique utilisé)")
+        counts["actualites"] = repo.insert_missing_articles(action_id, new, since)
     except Exception as error:
         errors.append(f"{ticker} actualités : {type(error).__name__}: {error}")
 
@@ -260,7 +270,9 @@ def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now:
     return ticker, counts, errors, gathered
 
 
-def refresh(repo, collector: MarketCollector, now: datetime | None = None, news_api_key: str = "") -> dict[str, Any]:
+def refresh(
+    repo, collector: MarketCollector, now: datetime | None = None, news_api_key: str = "", analyzer=None
+) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     today = now.date()
     report: dict[str, Any] = {"horodatage": now.isoformat(timespec="seconds"), "actions": {}, "erreurs": []}
@@ -269,7 +281,7 @@ def refresh(repo, collector: MarketCollector, now: datetime | None = None, news_
     # Les 5 collectes partent en même temps : ~10 s au lieu de ~40 s (attente réseau).
     actions = repo.get_actions()
     with ThreadPoolExecutor(max_workers=max(1, len(actions))) as pool:
-        results = list(pool.map(lambda a: collect_stock(repo, collector, a, now, news_api_key), actions))
+        results = list(pool.map(lambda a: collect_stock(repo, collector, a, now, news_api_key, analyzer), actions))
     for ticker, counts, errors, data in sorted(results, key=lambda r: r[0]):
         report["actions"][ticker] = counts
         report["erreurs"] += errors

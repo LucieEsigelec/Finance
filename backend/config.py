@@ -43,11 +43,12 @@ class Settings:
     supabase_key: str
     news_api_key: str
     cors_origins: tuple[str, ...]
+    anthropic_api_key: str = ""
 
     def __repr__(self) -> str:  # ne jamais afficher une clé, même par erreur
         return (
             f"Settings(supabase_url={self.supabase_url!r}, supabase_key=***, "
-            f"news_api_key=***, cors_origins={self.cors_origins!r})"
+            f"news_api_key=***, anthropic_api_key=***, cors_origins={self.cors_origins!r})"
         )
 
 
@@ -58,6 +59,7 @@ def load_settings() -> Settings:
         supabase_key=os.getenv("SUPABASE_KEY", "").strip(),
         news_api_key=os.getenv("NEWS_API_KEY", "").strip(),
         cors_origins=tuple(o.strip().rstrip("/") for o in origins.split(",") if o.strip()),
+        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", "").strip(),
     )
 
 
@@ -152,6 +154,11 @@ INFO_FENETRE_JOURS: Final = 7
 INFO_IMPORTANCE_ANNONCE: Final = 1.0
 INFO_IMPORTANCE_ORDINAIRE: Final = 0.5
 INFO_NB_FAITS_CLES: Final = 3
+
+# Analyse des articles par un modèle de langue (D-16) ; sans ANTHROPIC_API_KEY : lexique.
+NLP_MODELE: Final = "claude-haiku-5-5"
+NLP_ARTICLES_PAR_APPEL: Final = 40
+NLP_TIMEOUT_SECONDES: Final = 60.0
 
 # ---------------------------------------------------------------------------
 # 6. Pilier Ratios financiers — SPEC §5

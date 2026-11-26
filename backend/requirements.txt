@@ -16,6 +16,9 @@ pandas==3.1.1
 numpy==2.4.6
 ta==0.11.0
 
+# Analyse des actualités par Claude (D-16)
+anthropic==2.14.0
+
 # Collecte des données (cours, actualités)
 yfinance==1.8.0
 feedparser==6.0.14

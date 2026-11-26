@@ -31,6 +31,14 @@ def get_collector() -> MarketCollector:
     return MarketCollector()
 
 
+@lru_cache(maxsize=1)
+def get_news_analyzer():
+    """Analyse des articles par Claude (D-16), ou None sans clé ANTHROPIC_API_KEY (lexique)."""
+    from services.news_nlp import ClaudeNewsAnalyzer
+
+    return ClaudeNewsAnalyzer.from_settings()
+
+
 def get_now() -> datetime:
     return datetime.now(timezone.utc)
 

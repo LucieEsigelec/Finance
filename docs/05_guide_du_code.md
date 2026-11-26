@@ -55,7 +55,7 @@ La note du pilier est la moyenne des 5 signaux, pondérée par leur importance. 
 
 ### 3.2 Informations — `info_scoring.py` et `sentiment.py`
 
-1. Chaque article reçoit une note d'impact quand il est collecté. `sentiment.py` cherche des mots positifs (« hausse », « contrat », « record »…) et négatifs (« baisse », « avertissement »…), en français et en anglais, et en tire un sentiment entre −1 et +1. Une **annonce officielle** (résultats, contrat, fusion, dirigeant) compte double.
+1. Chaque article reçoit une note d'impact quand il est collecté. **Un modèle de langue, Claude Haiku 5.5** (`news_nlp.py`), lit le titre et le résumé de chaque nouvel article et dit : quel est l'effet probable pour l'actionnaire (sentiment entre −1 et +1, en comprenant le contexte : « baisse des coûts » est une bonne nouvelle), est-ce une **annonce officielle** de l'entreprise (elle compte double), et l'article parle-t-il vraiment de l'entreprise (sinon il est écarté). Les articles d'une même action partent en un seul appel, avec une réponse au format JSON imposé. Si le modèle n'est pas disponible (pas de clé `ANTHROPIC_API_KEY`, coupure, refus), on revient à l'ancienne méthode, `sentiment.py`, qui compte des mots positifs et négatifs.
 2. Un article **perd la moitié de son poids tous les 2 jours** et est ignoré après 7 jours.
 3. La note du pilier est la moyenne des notes d'impact, pondérée par ces poids.
 4. Les 3 articles qui pèsent le plus servent à expliquer le conseil.
