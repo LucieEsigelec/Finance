@@ -255,7 +255,7 @@ frontend/src/
 
 ### 7.5 Le seul chemin qui enregistre : le simulateur
 
-1. `SimulatorPanel` (le formulaire) : Achat / Vente, puis une ligne par action avec sa case à cocher et, à côté, **son propre montant** (saisir un montant coche l'action). En bas, le **total** comparé au cash disponible. Un montant vide ou nul est refusé dans le navigateur.
+1. `SimulatorPanel` (le formulaire) : Achat / Vente, puis une ligne par action avec sa case à cocher et, à côté, **son propre montant** (saisir un montant coche l'action). En bas, le **total** comparé au cash disponible. Un montant vide ou nul est refusé dans le navigateur. **En vente**, chaque action cochée affiche le nombre d'actions détenues ; vendre plus que ce que l'on possède met la case en rouge et grise « Simuler » (la base revérifie de toute façon à l'enregistrement).
 2. « Simuler » → `POST /api/simulate` (une ligne `{ticker, montant_eur}` par action) → une `AdviceCard` par titre (conseil, verdict, chiffres, 3 scénarios, raisons) et un **récapitulatif** (montant réellement investi, reste en cash, dividendes, cash après toutes les opérations). Pour un achat, le cash est décompté ligne après ligne : si le total dépasse le cash, les dernières lignes sont refusées avec leur raison. Rien n'est enregistré.
 3. « Valider l'achat » (désactivé si l'opération est refusée) → `ConfirmDialog` avec le récapitulatif et le cash après l'opération.
 4. « Valider » dans la fenêtre → `POST /api/transactions`. Succès : message, rechargement des données ; la carte affiche « Opération enregistrée » et on reste sur le simulateur tant que d'autres actions restent à valider, sinon retour au tableau de bord. Refus (400) : message rouge, la fenêtre reste ouverte, rien n'est écrit.
