@@ -24,7 +24,7 @@ MARKET_TTL = 600.0
 PORTFOLIO_TTL = 30.0
 
 MARKET_READS = {
-    "get_actions", "latest_scores", "get_history", "last_history_date", "get_ratios", "get_articles", "get_intraday", "oldest_intraday",
+    "get_actions", "latest_scores", "get_history", "last_history_date", "get_ratios", "get_articles", "get_intraday", "count_intraday",
 }
 PORTFOLIO_READS = {"get_portfolio", "get_transactions"}
 MARKET_WRITES = {

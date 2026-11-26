@@ -104,11 +104,11 @@ class FakeRepository:
         for action_id, bars in self.intraday.items():
             self.intraday[action_id] = {s: r for s, r in bars.items() if s >= limit}
 
-    def oldest_intraday(self, action_id):
+    def count_intraday(self, action_id, since):
         if not self.intraday_table_exists:
             raise RuntimeError('relation "cours_intraday" does not exist')
-        stamps = list(self.intraday[action_id])
-        return min(datetime.fromisoformat(s) for s in stamps) if stamps else None
+        limit = since.astimezone(timezone.utc).isoformat()
+        return sum(1 for stamp in self.intraday[action_id] if stamp >= limit)
 
     def get_intraday(self, action_id, since=None):
         if not self.intraday_table_exists:

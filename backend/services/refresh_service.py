@@ -202,6 +202,19 @@ def open_week_if_needed(repo, today: date, histories: Mapping[str, pd.DataFrame]
     return {"val_semaine_prec": str(value), "date_ref_semaine": monday.isoformat()}
 
 
+def intraday_complete(repo, action_id: str, history: pd.DataFrame, now: datetime) -> bool:
+    """Les bougies de 5 min des 20 derniers jours sont-elles (presque) toutes là ? On compte
+    les bougies présentes et on les compare aux séances connues (hors aujourd'hui) : un trou
+    laissé par une actualisation interrompue fait recharger le mois entier (D-15)."""
+    since = now - timedelta(days=config.INTRADAY_HISTORIQUE_MIN_JOURS)
+    if history.empty:
+        return False
+    days = pd.to_datetime(history["date_seance"]).dt.date
+    sessions = int(((days >= since.date()) & (days < now.date())).sum())
+    expected = sessions * config.INTRADAY_BOUGIES_PAR_SEANCE * config.INTRADAY_TAUX_MIN
+    return sessions > 0 and repo.count_intraday(action_id, since) >= expected
+
+
 def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now: datetime, news_api_key: str):
     """Collecte d'UNE action (cours, ratios, actualités). Lancée en parallèle pour les 5."""
     ticker, action_id = action["ticker"], action["id"]
@@ -234,9 +247,10 @@ def collect_stock(repo, collector: MarketCollector, action: dict[str, Any], now:
         errors.append(f"{ticker} actualités : {type(error).__name__}: {error}")
 
     try:  # bougies de 5 min (graphiques 1 jour / 1 semaine) ; table créée par la migration 004
-        oldest = repo.oldest_intraday(action_id)
-        enough = oldest is not None and now - oldest >= timedelta(days=config.INTRADAY_HISTORIQUE_MIN_JOURS)
-        rows = collector.intraday(ticker, config.INTRADAY_PERIODE if enough else config.INTRADAY_PERIODE_INITIALE)
+        rows = collector.intraday(
+            ticker,
+            config.INTRADAY_PERIODE if intraday_complete(repo, action_id, history, now) else config.INTRADAY_PERIODE_INITIALE,
+        )
         counts["intraday"] = repo.upsert_intraday([{**r, "action_id": action_id} for r in rows])
     except Exception as error:
         errors.append(f"{ticker} intraday : {type(error).__name__}")

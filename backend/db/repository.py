@@ -14,11 +14,18 @@ Règles respectées (CLAUDE.md §5, §6.2) :
 
 from __future__ import annotations
 
+import threading
+import time
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+import httpx
 import pandas as pd
+
+# Coupures réseau passagères (connexion fermée, erreur de protocole, délai dépassé) : toute la
+# famille httpx.TransportError est réessayée (D-15).
+TRANSIENT_ERRORS = (httpx.TransportError,)
 
 PAGE = 1000  # nombre maximal de lignes renvoyées par Supabase en une fois
 
@@ -39,14 +46,33 @@ def _ts(value: str | datetime) -> datetime:
     return value if isinstance(value, datetime) else datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+RETRIES = 3
+
+
 class SupabaseRepository:
     def __init__(self, client):
         self.client = client
+        self._write_lock = threading.Lock()
+
+    def _run(self, query, write: bool = False):
+        """Exécute une requête Supabase. Une connexion coupée (« Server disconnected ») est
+        réessayée jusqu'à 3 fois ; les écritures passent une par une, car les 5 collectes
+        parallèles partagent la même connexion (D-15)."""
+        for attempt in range(1, RETRIES + 1):
+            try:
+                if write:
+                    with self._write_lock:
+                        return query.execute()
+                return query.execute()
+            except TRANSIENT_ERRORS:
+                if attempt == RETRIES:
+                    raise
+                time.sleep(0.5 * attempt)
 
     def _all(self, query) -> list[dict[str, Any]]:
         rows, start = [], 0
         while True:
-            batch = query.range(start, start + PAGE - 1).execute().data
+            batch = self._run(query.range(start, start + PAGE - 1)).data
             rows.extend(batch)
             if len(batch) < PAGE:
                 return rows
@@ -55,7 +81,7 @@ class SupabaseRepository:
     # --- actions -----------------------------------------------------------------
 
     def get_actions(self) -> list[dict[str, Any]]:
-        rows = self.client.table("actions").select("*").order("ticker").execute().data
+        rows = self._run(self.client.table("actions").select("*").order("ticker"), write=False).data
         for row in rows:
             row["dernier_cours"] = _dec(row["dernier_cours"])
             row["dividende_estime"] = _dec(row["dividende_estime"])
@@ -63,7 +89,7 @@ class SupabaseRepository:
 
     def update_action(self, action_id: str, **fields: Any) -> None:
         payload = {k: (str(v) if isinstance(v, Decimal) else v) for k, v in fields.items()}
-        self.client.table("actions").update(payload).eq("id", action_id).execute()
+        self._run(self.client.table("actions").update(payload).eq("id", action_id), write=True)
 
     # --- cours -------------------------------------------------------------------
 
@@ -83,37 +109,38 @@ class SupabaseRepository:
 
     def last_history_date(self, action_id: str) -> date | None:
         rows = (
-            self.client.table("historique_cours").select("date_seance").eq("action_id", action_id)
-            .order("date_seance", desc=True).limit(1).execute().data
+            self._run(self.client.table("historique_cours").select("date_seance").eq("action_id", action_id)
+            .order("date_seance", desc=True).limit(1), write=False).data
         )
         return date.fromisoformat(rows[0]["date_seance"]) if rows else None
 
     def upsert_history(self, rows: list[dict[str, Any]]) -> int:
         for start in range(0, len(rows), 500):
-            self.client.table("historique_cours").upsert(
+            self._run(self.client.table("historique_cours").upsert(
                 rows[start:start + 500], on_conflict="action_id,date_seance"
-            ).execute()
+            ), write=True)
         return len(rows)
 
     # --- cours intrajournaliers (migration 004, D-12) -------------------------------
 
     def upsert_intraday(self, rows: list[dict[str, Any]]) -> int:
         for start in range(0, len(rows), 500):
-            self.client.table("cours_intraday").upsert(
+            self._run(self.client.table("cours_intraday").upsert(
                 rows[start:start + 500], on_conflict="action_id,horodatage"
-            ).execute()
+            ), write=True)
         return len(rows)
 
     def purge_intraday(self, before: datetime) -> None:
         """Supprime les bougies plus anciennes que ``before`` (toujours avec une condition)."""
-        self.client.table("cours_intraday").delete().lt("horodatage", before.isoformat()).execute()
+        self._run(self.client.table("cours_intraday").delete().lt("horodatage", before.isoformat()), write=True)
 
-    def oldest_intraday(self, action_id: str) -> datetime | None:
-        rows = (
-            self.client.table("cours_intraday").select("horodatage").eq("action_id", action_id)
-            .order("horodatage").limit(1).execute().data
+    def count_intraday(self, action_id: str, since: datetime) -> int:
+        """Nombre de bougies de 5 min enregistrées depuis ``since``."""
+        query = (
+            self.client.table("cours_intraday").select("id", count="exact", head=True)
+            .eq("action_id", action_id).gte("horodatage", since.isoformat())
         )
-        return _ts(rows[0]["horodatage"]) if rows else None
+        return self._run(query).count or 0
 
     def get_intraday(self, action_id: str, since: datetime | None = None) -> pd.DataFrame:
         query = self.client.table("cours_intraday").select("horodatage, open, high, low, close, volume")
@@ -133,8 +160,8 @@ class SupabaseRepository:
     def get_ratios(self, action_id: str) -> list[dict[str, Any]]:
         """Exercices du plus récent au plus ancien."""
         return (
-            self.client.table("ratios_financiers").select("*").eq("action_id", action_id)
-            .order("date_maj", desc=True).execute().data
+            self._run(self.client.table("ratios_financiers").select("*").eq("action_id", action_id)
+            .order("date_maj", desc=True), write=False).data
         )
 
     def save_ratios(self, action_id: str, rows: list[dict[str, Any]]) -> int:
@@ -143,17 +170,17 @@ class SupabaseRepository:
         new = [r for r in rows if r["date_maj"] not in existing]
         for row in rows:
             if row["date_maj"] in existing:
-                self.client.table("ratios_financiers").update(row).eq("id", existing[row["date_maj"]]).execute()
+                self._run(self.client.table("ratios_financiers").update(row).eq("id", existing[row["date_maj"]]), write=True)
         if new:
-            self.client.table("ratios_financiers").insert(new).execute()
+            self._run(self.client.table("ratios_financiers").insert(new), write=True)
         return len(new)
 
     # --- actualités --------------------------------------------------------------
 
     def get_articles(self, action_id: str, since: datetime) -> list[dict[str, Any]]:
         rows = (
-            self.client.table("actualites").select("*").eq("action_id", action_id)
-            .gte("date_pub", since.isoformat()).order("date_pub", desc=True).execute().data
+            self._run(self.client.table("actualites").select("*").eq("action_id", action_id)
+            .gte("date_pub", since.isoformat()).order("date_pub", desc=True), write=False).data
         )
         for row in rows:
             row["date_pub"] = _ts(row["date_pub"])
@@ -172,20 +199,20 @@ class SupabaseRepository:
             seen_titles.add(key)
             new.append({**article, "action_id": action_id, "date_pub": article["date_pub"].isoformat()})
         if new:
-            self.client.table("actualites").insert(new).execute()
+            self._run(self.client.table("actualites").insert(new), write=True)
         return len(new)
 
     # --- scores ------------------------------------------------------------------
 
     def insert_scores(self, rows: list[dict[str, Any]]) -> None:
-        self.client.table("scores_actions").insert(rows).execute()
+        self._run(self.client.table("scores_actions").insert(rows), write=True)
 
     def latest_scores(self) -> dict[str, dict[str, Any]]:
         """Dernière ligne de scores_actions pour chaque action (clé : action_id).
         Une actualisation écrit les 5 lignes ensemble : les 10 plus récentes suffisent."""
         rows = (
-            self.client.table("scores_actions").select("*").order("date_calcul", desc=True)
-            .limit(10).execute().data
+            self._run(self.client.table("scores_actions").select("*").order("date_calcul", desc=True)
+            .limit(10), write=False).data
         )
         latest: dict[str, dict[str, Any]] = {}
         for row in rows:
@@ -195,16 +222,16 @@ class SupabaseRepository:
     # --- portefeuille et opérations ---------------------------------------------
 
     def get_portfolio(self) -> dict[str, Any]:
-        row = self.client.table("portefeuille").select("*").limit(1).execute().data[0]
+        row = self._run(self.client.table("portefeuille").select("*").limit(1), write=False).data[0]
         for key in ("capital_initial", "cash_disponible", "val_semaine_prec"):
             row[key] = _dec(row[key])
         row["date_ref_semaine"] = date.fromisoformat(row["date_ref_semaine"])
         return row
 
     def update_portfolio_week(self, portfolio_id: str, value: Decimal, monday: date) -> None:
-        self.client.table("portefeuille").update(
+        self._run(self.client.table("portefeuille").update(
             {"val_semaine_prec": str(value), "date_ref_semaine": monday.isoformat()}
-        ).eq("id", portfolio_id).execute()
+        ).eq("id", portfolio_id), write=True)
 
     def get_transactions(self, portfolio_id: str) -> list[dict[str, Any]]:
         rows = self._all(
@@ -227,7 +254,7 @@ class SupabaseRepository:
         from postgrest.exceptions import APIError
 
         try:
-            return self.client.rpc(
+            return self._run(self.client.rpc(
                 "executer_transaction",
                 {
                     "p_portefeuille": portfolio_id,
@@ -236,7 +263,7 @@ class SupabaseRepository:
                     "p_qte": quantity,
                     "p_conseil": conseil,
                 },
-            ).execute().data
+            ), write=True).data
         except APIError as error:
             raise TransactionRefused(error.message or "ERREUR_BASE") from error
 

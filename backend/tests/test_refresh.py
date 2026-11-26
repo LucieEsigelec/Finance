@@ -234,3 +234,17 @@ def test_fetch_intraday_formats_yfinance_rows(monkeypatch):
         "horodatage": "2026-11-26T08:05:00+00:00", "open": "22.10", "high": "22.20", "low": "22.00",
         "close": "22.15", "volume": 1200,
     }]
+
+
+
+def test_gap_in_intraday_bars_triggers_a_full_month_reload():
+    """D-15 : une actualisation interrompue avait laissé un trou au milieu du mois."""
+    repo = FakeRepository()
+    collector = FakeCollector(NOW.date())
+    refresh(repo, collector, NOW)
+    dsy = repo.action_by_ticker("DSY.PA")["id"]
+    for stamp in sorted(repo.intraday[dsy])[600:1700]:  # ~11 séances perdues
+        del repo.intraday[dsy][stamp]
+    report = refresh(repo, collector, NOW + timedelta(hours=1))
+    assert report["actions"]["DSY.PA"]["intraday"] == 22 * 102  # mois rechargé, trou comblé
+    assert report["actions"]["AI.PA"]["intraday"] == 5 * 102  # complet : 5 séances seulement

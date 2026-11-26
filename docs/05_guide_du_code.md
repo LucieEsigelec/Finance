@@ -112,7 +112,7 @@ Lancement depuis `backend/` : `python -m pytest`. La couverture doit rester au-d
 
 | Fichier | Rôle |
 |---|---|
-| `db/repository.py` | **Le seul endroit qui parle à Supabase.** Il traduit « donne-moi les cours de DSY.PA » ou « enregistre ces notes » en requêtes. Le reste du code ne connaît pas Supabase. |
+| `db/repository.py` | **Le seul endroit qui parle à Supabase.** Il traduit « donne-moi les cours de DSY.PA » ou « enregistre ces notes » en requêtes. Le reste du code ne connaît pas Supabase. Chaque requête passe par `_run` : en cas de coupure réseau, elle est réessayée (3 fois au plus), et les écritures passent une par une. |
 | `services/market_data.py` | Va chercher les données à l'extérieur : cours et dividendes (yfinance), chiffre d'affaires (yfinance), actualités (Google News en RSS et NewsAPI). |
 | `services/refresh_service.py` | Le chef d'orchestre de l'actualisation : collecter, enregistrer, recalculer, ouvrir la semaine. |
 | `tools/refresh.py` | Lance une actualisation à la main : `python -m tools.refresh`. |
@@ -147,7 +147,7 @@ Et à tout moment, le bouton « Actualiser les données » (une fois toutes les 
 
 ### 5.3 bis Les cours intrajournaliers (graphiques 1 jour / 1 semaine)
 
-La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004) : un mois au premier chargement, puis les 5 dernières séances. Les bougies de plus de 35 jours sont supprimées. L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris.
+La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004) : un mois au premier chargement, puis les 5 dernières séances. Les bougies de plus de 35 jours sont supprimées. Si une actualisation a été interrompue et qu'il manque des bougies sur les 20 derniers jours, la suivante recharge le mois entier et comble les trous. L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris.
 
 **Pourquoi garder un mois ?** Une moyenne sur 200 bougies a besoin de 200 bougies *avant* la première qu'on affiche. Les indicateurs sont donc calculés sur tout le mois, puis on ne garde que la période affichée : toutes les courbes commencent avec la première bougie. Le conseil, lui, reste calculé sur les cours de clôture.
 
