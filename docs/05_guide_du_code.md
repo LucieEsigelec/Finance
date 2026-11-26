@@ -147,7 +147,9 @@ Et à tout moment, le bouton « Actualiser les données » (une fois toutes les 
 
 ### 5.3 bis Les cours intrajournaliers (graphiques 1 jour / 1 semaine)
 
-La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** sur les 5 dernières séances (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004). Les bougies de plus de 10 jours sont supprimées, la table reste petite (environ 2 500 lignes). L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris. Le conseil, lui, reste calculé sur les cours de clôture.
+La table `historique_cours` ne garde qu'un cours par jour. Pour les vues **1J** et **1S** de la fiche action, chaque actualisation récupère aussi des **bougies de 5 minutes** (`fetch_intraday`) et les range dans la table `cours_intraday` (créée par la migration 004) : un mois au premier chargement, puis les 5 dernières séances. Les bougies de plus de 35 jours sont supprimées. L'API en fabrique deux vues : la dernière séance en bougies de 5 minutes, et la semaine en bougies de 30 minutes, à l'heure de Paris.
+
+**Pourquoi garder un mois ?** Une moyenne sur 200 bougies a besoin de 200 bougies *avant* la première qu'on affiche. Les indicateurs sont donc calculés sur tout le mois, puis on ne garde que la période affichée : toutes les courbes commencent avec la première bougie. Le conseil, lui, reste calculé sur les cours de clôture.
 
 ### 5.3 Deux précisions de calcul
 
@@ -253,10 +255,10 @@ frontend/src/
 
 ### 7.5 Le seul chemin qui enregistre : le simulateur
 
-1. `SimulatorPanel` (le formulaire) : cases des 5 actions, Achat / Vente, montant. Un montant vide ou nul est refusé dans le navigateur.
-2. « Simuler » → `POST /api/simulate` → une `AdviceCard` par titre (conseil, verdict, chiffres, 3 scénarios, raisons). Rien n'est enregistré.
+1. `SimulatorPanel` (le formulaire) : Achat / Vente, puis une ligne par action avec sa case à cocher et, à côté, **son propre montant** (saisir un montant coche l'action). En bas, le **total** comparé au cash disponible. Un montant vide ou nul est refusé dans le navigateur.
+2. « Simuler » → `POST /api/simulate` (une ligne `{ticker, montant_eur}` par action) → une `AdviceCard` par titre (conseil, verdict, chiffres, 3 scénarios, raisons) et un **récapitulatif** (montant réellement investi, reste en cash, dividendes, cash après toutes les opérations). Pour un achat, le cash est décompté ligne après ligne : si le total dépasse le cash, les dernières lignes sont refusées avec leur raison. Rien n'est enregistré.
 3. « Valider l'achat » (désactivé si l'opération est refusée) → `ConfirmDialog` avec le récapitulatif et le cash après l'opération.
-4. « Valider » dans la fenêtre → `POST /api/transactions`. Succès : message, rechargement du tableau de bord, retour au tableau de bord. Refus (400) : message rouge, la fenêtre reste ouverte, rien n'est écrit.
+4. « Valider » dans la fenêtre → `POST /api/transactions`. Succès : message, rechargement des données ; la carte affiche « Opération enregistrée » et on reste sur le simulateur tant que d'autres actions restent à valider, sinon retour au tableau de bord. Refus (400) : message rouge, la fenêtre reste ouverte, rien n'est écrit.
 
 ### 7.6 Vérifié
 

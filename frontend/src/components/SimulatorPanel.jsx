@@ -40,10 +40,11 @@ export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, 
       </fieldset>
 
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-        <legend className="mb-2 flex w-full justify-between text-[13px] font-semibold">
+        <legend className="sr-only">Actions et montants</legend>
+        <div className="grid grid-cols-[1fr_140px] gap-2 text-[13px] font-semibold" aria-hidden="true">
           <span>Actions</span>
-          <span>{isBuy ? 'Montant à investir' : 'Montant à vendre'}</span>
-        </legend>
+          <span className="text-right">{isBuy ? 'Montant à investir' : 'Montant à vendre'}</span>
+        </div>
         {STOCKS.map((stock) => {
           const checked = selected.includes(stock.ticker)
           const error = errors[stock.ticker]

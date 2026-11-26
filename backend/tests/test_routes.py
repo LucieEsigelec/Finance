@@ -351,6 +351,16 @@ def test_stock_detail_has_intraday_day_and_week_views(api):
     assert {"open", "close", "mm20", "rsi", "macd_hist"} <= set(day[-1])
 
 
+def test_intraday_indicators_start_with_the_first_candle(api):
+    """D-14 : les indicateurs sont calculés sur l'historique, pas seulement sur les bougies
+    affichées — toutes les courbes existent dès la première bougie de 1J et de 1S."""
+    intraday = api.get("/api/stocks/DSY.PA").json()["graphique"]["intraday"]
+    for view in ("jour", "semaine"):
+        first = intraday[view][0]
+        for key in ("mm20", "mm50", "mm200", "boll_haut", "boll_bas", "rsi", "macd", "macd_signal"):
+            assert first[key] is not None, (view, key)
+
+
 def test_intraday_unavailable_until_migration_004(api, repo):
     repo.intraday_table_exists = False
     refresh_control.last_refresh["at"] = 0.0

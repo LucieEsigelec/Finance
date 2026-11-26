@@ -48,12 +48,13 @@ def test_refresh_fills_history_scores_and_updates_actions():
 def test_refresh_loads_two_years_first_then_only_recent_days():
     repo = FakeRepository()
     collector = FakeCollector(NOW.date())
+    history_calls = lambda: [c for c in collector.calls if not str(c[1]).startswith("intraday")]  # noqa: E731
     refresh(repo, collector, NOW)
-    assert collector.calls[0] == ("AI.PA", None)  # premier passage : 2 ans
+    assert [since for _, since in history_calls()] == [None] * 5  # premier passage : 2 ans
+    first = len(history_calls())
     refresh(repo, collector, NOW + timedelta(hours=1))
-    since = collector.calls[5][1]
-    assert since is not None and (NOW.date() - since).days <= 10
-
+    later = [since for _, since in history_calls()[first:]]
+    assert len(later) == 5 and all(s is not None and (NOW.date() - s).days <= 10 for s in later)
 
 def test_refresh_is_idempotent_for_ratios_and_articles():
     repo = FakeRepository()
@@ -213,13 +214,15 @@ def test_news_relevance_filter(ticker, titre, attendu):
 def test_refresh_stores_intraday_bars_and_purges_old_ones():
     repo = FakeRepository()
     dsy = repo.action_by_ticker("DSY.PA")["id"]
-    repo.intraday[dsy]["2026-11-01T09:00:00+00:00"] = {
-        "action_id": dsy, "horodatage": "2026-11-01T09:00:00+00:00", "close": "1"}
-    report = refresh(repo, FakeCollector(NOW.date()), NOW)
-    assert report["actions"]["DSY.PA"]["intraday"] == 510
-    assert "2026-11-01T09:00:00+00:00" not in repo.intraday[dsy]  # plus de 10 jours : supprimée
-    assert len(repo.intraday[dsy]) == 510
-
+    collector = FakeCollector(NOW.date())
+    report = refresh(repo, collector, NOW)
+    assert report["actions"]["DSY.PA"]["intraday"] == 22 * 102  # premier chargement : un mois
+    for stamp in ("2026-10-01T09:00:00+00:00", "2026-11-01T09:00:00+00:00"):
+        repo.intraday[dsy][stamp] = {"action_id": dsy, "horodatage": stamp, "close": "1"}
+    report = refresh(repo, collector, NOW + timedelta(hours=1))
+    assert report["actions"]["DSY.PA"]["intraday"] == 5 * 102  # ensuite : 5 séances
+    assert "2026-10-01T09:00:00+00:00" not in repo.intraday[dsy]  # plus de 35 jours : supprimée
+    assert "2026-11-01T09:00:00+00:00" in repo.intraday[dsy]  # 24 jours : gardée
 
 def test_fetch_intraday_formats_yfinance_rows(monkeypatch):
     frame = pd.DataFrame(

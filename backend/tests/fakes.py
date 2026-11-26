@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timezone
+from functools import lru_cache
 from decimal import Decimal
 from typing import Any
 
@@ -99,11 +100,17 @@ class FakeRepository:
         return len(rows)
 
     def purge_intraday(self, before):
-        for bars in self.intraday.values():
-            for stamp in [s for s in bars if pd.Timestamp(s) < pd.Timestamp(before)]:
-                del bars[stamp]
+        limit = before.astimezone(timezone.utc).isoformat()  # horodatages ISO en UTC : comparables
+        for action_id, bars in self.intraday.items():
+            self.intraday[action_id] = {s: r for s, r in bars.items() if s >= limit}
 
-    def get_intraday(self, action_id):
+    def oldest_intraday(self, action_id):
+        if not self.intraday_table_exists:
+            raise RuntimeError('relation "cours_intraday" does not exist')
+        stamps = list(self.intraday[action_id])
+        return min(datetime.fromisoformat(s) for s in stamps) if stamps else None
+
+    def get_intraday(self, action_id, since=None):
         if not self.intraday_table_exists:
             raise RuntimeError('relation "cours_intraday" does not exist')
         rows = sorted(self.intraday[action_id].values(), key=lambda r: r["horodatage"])
@@ -112,6 +119,8 @@ class FakeRepository:
             df["horodatage"] = pd.to_datetime(df["horodatage"], utc=True)
             for col in ("open", "high", "low", "close"):
                 df[col] = df[col].astype(float)
+            if since is not None:
+                df = df[df["horodatage"] >= pd.Timestamp(since)]
         return df
 
     # ratios
@@ -216,22 +225,30 @@ class FakeCollector:
             dividende_12_mois=Decimal("0.29") if ticker == "DSY.PA" else Decimal("3.00"),
         )
 
-    def intraday(self, ticker):
-        """5 séances de bougies de 5 min (9 h – 17 h 30, heure de Paris)."""
-        rng = np.random.default_rng(sum(map(ord, ticker)) + 1)
-        days = pd.bdate_range(end=self.end, periods=5)
-        stamps = [
-            pd.Timestamp(f"{d.date()} 09:00", tz="Europe/Paris") + pd.Timedelta(minutes=5 * i)
-            for d in days for i in range(102)
-        ]
-        closes = 100 * np.cumprod(1 + rng.normal(0, 0.001, len(stamps)))
-        return [
-            {"horodatage": s.tz_convert("UTC").isoformat(), "open": f"{c:.2f}", "high": f"{c * 1.001:.2f}",
-             "low": f"{c * 0.999:.2f}", "close": f"{c:.2f}", "volume": 10}
-            for s, c in zip(stamps, closes)
-        ]
+    def intraday(self, ticker, period="5d"):
+        """Bougies de 5 min (9 h – 17 h 30, heure de Paris) : 5 séances, ou 22 pour « 1mo »."""
+        self.calls.append((ticker, f"intraday:{period}"))
+        return [dict(r) for r in _synthetic_intraday(ticker, self.end, 22 if period == "1mo" else 5)]
+
 
     def news(self, ticker, now, api_key):
         if "news" in self.fail:
             return [], ["Google News : timeout"]
         return list(self._articles.get(ticker, [])), []
+
+
+@lru_cache(maxsize=32)
+def _synthetic_intraday(ticker: str, end: date, sessions: int) -> tuple[dict[str, Any], ...]:
+    """Bougies de 5 min réalistes, calculées une seule fois par titre et par période (tests rapides)."""
+    rng = np.random.default_rng(sum(map(ord, ticker)) + 1)
+    days = pd.bdate_range(end=end, periods=sessions)
+    stamps = [
+        pd.Timestamp(f"{d.date()} 09:00", tz="Europe/Paris") + pd.Timedelta(minutes=5 * i)
+        for d in days for i in range(102)
+    ]
+    closes = 100 * np.cumprod(1 + rng.normal(0, 0.001, len(stamps)))
+    return tuple(
+        {"horodatage": s.tz_convert("UTC").isoformat(), "open": f"{c:.2f}", "high": f"{c * 1.001:.2f}",
+         "low": f"{c * 0.999:.2f}", "close": f"{c:.2f}", "volume": 10}
+        for s, c in zip(stamps, closes)
+    )

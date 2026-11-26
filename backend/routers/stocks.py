@@ -62,34 +62,41 @@ def _paris_epoch(stamp: pd.Timestamp) -> int:
 
 
 def intraday_views(bars: pd.DataFrame) -> dict[str, Any]:
-    """Vue 1J : bougies de 5 min de la dernière séance. Vue 1S : bougies de 30 min sur
-    5 séances. Les indicateurs sont calculés sur les bougies affichées (D-12)."""
+    """Vue 1J : bougies de 5 min de la dernière séance. Vue 1S : bougies de 30 min sur les
+    5 dernières séances. Les indicateurs sont calculés sur TOUT l'historique relu (environ un
+    mois), puis on ne garde que la période affichée : les courbes commencent avec la première
+    bougie, au lieu de démarrer au milieu du graphique (D-14)."""
     if bars.empty:
         return {"disponible": False, "jour": [], "semaine": [], "derniere_bougie": None}
-    df = bars.sort_values("horodatage").copy()
-    df["jour_paris"] = df["horodatage"].dt.tz_convert(PARIS).dt.date
+    df = bars.sort_values("horodatage").reset_index(drop=True)
+    ohlc = ["open", "high", "low", "close"]
+
+    def with_indicators(frame: pd.DataFrame) -> pd.DataFrame:
+        out = compute_indicators(frame[["horodatage", *ohlc]].rename(columns={"horodatage": "date_seance"}))
+        out["jour_paris"] = pd.to_datetime(out["date_seance"], utc=True).dt.tz_convert(PARIS).dt.date
+        return out
 
     def rows(frame: pd.DataFrame) -> list[dict[str, Any]]:
-        if frame.empty:
-            return []
-        indicators = compute_indicators(frame.rename(columns={"horodatage": "date_seance"}))
         return [
-            {"time": _paris_epoch(r["date_seance"]), **{k: _num(r[k]) for k in SERIES}}
-            for r in indicators.to_dict("records")
+            {"time": _paris_epoch(pd.Timestamp(r["date_seance"])), **{k: _num(r[k]) for k in SERIES}}
+            for r in frame.to_dict("records")
         ]
 
-    week = (
-        df.set_index("horodatage")[["open", "high", "low", "close"]]
+    five = with_indicators(df)
+    last_day = five["jour_paris"].max()
+    thirty_source = (
+        df.set_index("horodatage")[ohlc]
         .resample(config.INTRADAY_REGROUPEMENT_SEMAINE)
         .agg({"open": "first", "high": "max", "low": "min", "close": "last"})
         .dropna()
         .reset_index()
     )
-    last_day = df["jour_paris"].max()
+    thirty = with_indicators(thirty_source)
+    sessions = sorted(thirty["jour_paris"].unique())[-config.INTRADAY_SEANCES_SEMAINE:]
     return {
         "disponible": True,
-        "jour": rows(df[df["jour_paris"] == last_day][["horodatage", "open", "high", "low", "close"]]),
-        "semaine": rows(week),
+        "jour": rows(five[five["jour_paris"] == last_day]),
+        "semaine": rows(thirty[thirty["jour_paris"].isin(sessions)]),
         "derniere_bougie": df["horodatage"].iloc[-1].isoformat(),
     }
 
@@ -121,10 +128,10 @@ def macd_label(signal: float | None) -> str | None:
     }.get(signal)
 
 
-def _safe_intraday(repo, action_id: str) -> pd.DataFrame:
-    """Bougies de 5 min, ou rien si la table n'existe pas encore (migration 004 non exécutée)."""
+def _safe_intraday(repo, action_id: str, now: datetime) -> pd.DataFrame:
+    """Bougies de 5 min du dernier mois, ou rien si la table n'existe pas (migration 004)."""
     try:
-        return repo.get_intraday(action_id)
+        return repo.get_intraday(action_id, since=now - timedelta(days=config.INTRADAY_LECTURE_JOURS))
     except Exception:
         return pd.DataFrame(columns=["horodatage", "open", "high", "low", "close", "volume"])
 
@@ -144,7 +151,7 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
         history_job = pool.submit(repo.get_history, action["id"])
         articles_job = pool.submit(repo.get_articles, action["id"], now - timedelta(days=config.INFO_FENETRE_JOURS))
         ratios_job = pool.submit(repo.get_ratios, action["id"])
-        intraday_job = pool.submit(_safe_intraday, repo, action["id"])
+        intraday_job = pool.submit(_safe_intraday, repo, action["id"], now)
         history, articles, all_ratios = history_job.result(), articles_job.result(), ratios_job.result()
         intraday = intraday_views(intraday_job.result())
     chart = []

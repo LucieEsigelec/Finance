@@ -75,10 +75,11 @@ def fetch_history(ticker: str, since: date | None) -> list[dict[str, Any]]:
     return rows
 
 
-def fetch_intraday(ticker: str) -> list[dict[str, Any]]:
-    """Bougies de 5 minutes des 5 dernières séances (graphiques 1 jour / 1 semaine, D-12)."""
+def fetch_intraday(ticker: str, period: str | None = None) -> list[dict[str, Any]]:
+    """Bougies de 5 minutes (graphiques 1 jour / 1 semaine, D-12) : les 5 dernières séances,
+    ou un mois au premier chargement (``period="1mo"``)."""
     raw = yf.Ticker(ticker).history(
-        period=config.INTRADAY_PERIODE, interval=config.INTRADAY_INTERVALLE, auto_adjust=False
+        period=period or config.INTRADAY_PERIODE, interval=config.INTRADAY_INTERVALLE, auto_adjust=False
     )
     rows = []
     for stamp, bar in raw.iterrows():
