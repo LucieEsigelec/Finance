@@ -5,12 +5,16 @@
 const eur2 = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const eur0 = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 const pct1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'always' })
+const pct2 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'always' })
 const pct1Plain = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const int = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
 const dec1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 const minus = (text) => text.replace(/-/g, '−')
 const missing = (value) => value === null || value === undefined || Number.isNaN(value)
+/** En dessous de 0,005 %, une variation est considérée comme nulle (ni signe, ni couleur). */
+const NEGLIGIBLE = 0.005
+const NBSP = ' '
 
 /** Montant en euros, 2 décimales. */
 export function eur(value) {
@@ -23,15 +27,21 @@ export function eurKpi(value) {
   return minus((Math.abs(value) >= 100000 ? eur0 : eur2).format(value))
 }
 
-/** Montant arrondi à l'euro, avec signe : +1 599 € · −900 €. */
+/** Montant arrondi à l'euro, avec signe : +1 599 € · −900 € · 0 €. */
 export function eurSigned(value) {
   if (missing(value)) return '—'
-  return (value > 0 ? '+' : '') + minus(eur0.format(value))
+  const rounded = Math.round(value)
+  if (rounded === 0) return minus(eur0.format(0))
+  return (rounded > 0 ? '+' : '') + minus(eur0.format(rounded))
 }
 
-/** Variation : signe toujours affiché, 1 décimale. */
+/** Variation : signe toujours affiché, 1 décimale ; 2 décimales pour les petites variations
+ *  (−0,04 % au lieu de « −0,0 % ») ; « 0,00 % » sans signe quand elle est négligeable. */
 export function pct(value) {
-  return missing(value) ? '—' : `${minus(pct1.format(value))} %`
+  if (missing(value)) return '—'
+  const abs = Math.abs(value)
+  if (abs < NEGLIGIBLE) return `0,00${NBSP}%`
+  return `${minus((abs < 0.1 ? pct2 : pct1).format(value))}${NBSP}%`
 }
 
 /** Pourcentage sans signe (part investie, poids). */
@@ -67,6 +77,12 @@ export function formatLongDate(date = new Date()) {
 
 /** Classe de couleur d'une variation : vert si hausse, rouge si baisse. */
 export function trendClass(value) {
-  if (missing(value) || value === 0) return 'text-muted'
+  if (missing(value) || Math.abs(value) < NEGLIGIBLE) return 'text-muted'
   return value > 0 ? 'text-buy' : 'text-sell'
+}
+
+/** Flèche d'une variation : ▲ hausse, ▼ baisse, rien si négligeable. */
+export function trendArrow(value) {
+  if (missing(value) || Math.abs(value) < NEGLIGIBLE) return ''
+  return value > 0 ? '▲ ' : '▼ '
 }

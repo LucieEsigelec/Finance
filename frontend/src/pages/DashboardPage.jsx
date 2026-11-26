@@ -6,7 +6,7 @@ import RiskIndicator from '../components/RiskIndicator'
 import StocksTable from '../components/StocksTable'
 import KpiCard from '../components/ui/KpiCard'
 import { useDashboard } from '../context/DashboardContext'
-import { eurKpi, formatDate, formatDateTime, pct, pctPlain } from '../lib/format'
+import { eurKpi, eurSigned, formatDate, formatDateTime, pct, pctPlain, trendClass } from '../lib/format'
 
 // Tableau de bord (/tableau-de-bord) — EF-01, RG-01, maquettes 02 et 05.
 export default function DashboardPage() {
@@ -32,13 +32,18 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Capital total" value={eurKpi(data.capital_total)} delta={data.variation_depuis_depart_pct} deltaLabel="depuis le départ" />
+        <KpiCard
+          label="Capital total"
+          value={eurKpi(data.capital_total)}
+          delta={data.variation_depuis_depart_pct}
+          deltaLabel={`depuis le départ (${eurSigned(data.variation_depuis_depart_eur)})`}
+        />
         <KpiCard label="Cash disponible" value={eurKpi(data.cash_disponible)} hint={`${pctPlain(data.cash_pct)} du capital`} />
         <KpiCard
           label="Performance de la semaine"
           value={pct(data.variation_hebdo_pct)}
-          valueClassName={data.variation_hebdo_pct < 0 ? 'text-sell' : ''}
-          hint="Limite de perte : −10 %"
+          valueClassName={trendClass(data.variation_hebdo_pct)}
+          hint={`${eurSigned(data.variation_hebdo_eur)} · limite de perte : −10 %`}
         />
         <KpiCard label="Part investie" value={pctPlain(data.part_investie_pct)} hint={`${data.nb_titres_detenus} titre${data.nb_titres_detenus > 1 ? 's' : ''} sur 5`} />
       </div>

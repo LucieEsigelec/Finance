@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 import config
 from config import Settings
 from main import create_app
-from routers import deps, stocks
+from routers import deps, refresh_control
 from services.refresh_service import refresh
 from tests.fakes import FakeCollector, FakeRepository
 from tools.stress_test import shocked_level
@@ -36,9 +36,8 @@ def api(repo):
     app.dependency_overrides[deps.get_repo] = lambda: repo
     app.dependency_overrides[deps.get_now] = lambda: NOW
     app.dependency_overrides[deps.get_collector] = lambda: FakeCollector(NOW.date())
-    stocks._last_refresh["at"] = 0.0
-    stocks._last_newsapi["at"] = 0.0
-    stocks._refresh.update(en_cours=False, rapport=None, erreur=None)
+    refresh_control.reset()
+    refresh_control.last_refresh["at"] = time.monotonic()  # données fraîches : pas d'actualisation auto
     return TestClient(app)
 
 
@@ -288,6 +287,7 @@ def test_history_without_operations_still_has_a_curve(api):
 
 
 def test_refresh_route_then_rate_limited(api, repo):
+    refresh_control.last_refresh["at"] = 0.0
     before = len(repo.scores)
     first = api.post("/api/market/refresh", params={"attendre": "true"})
     assert first.status_code == 200 and first.json()["statut"] == "termine"
@@ -297,6 +297,7 @@ def test_refresh_route_then_rate_limited(api, repo):
 
 
 def test_refresh_runs_in_background_and_reports_status(api, repo):
+    refresh_control.last_refresh["at"] = 0.0
     before = len(repo.scores)
     response = api.post("/api/market/refresh")
     assert response.status_code == 202 and response.json()["statut"] == "lance"
@@ -307,16 +308,16 @@ def test_refresh_runs_in_background_and_reports_status(api, repo):
 
 
 def test_refresh_already_running_is_not_started_twice(api):
-    stocks._refresh["en_cours"] = True
+    refresh_control.state["en_cours"] = True
     response = api.post("/api/market/refresh")
     assert response.status_code == 202 and response.json()["statut"] == "en_cours"
 
 
 def test_newsapi_called_at_most_every_15_minutes(monkeypatch):
     monkeypatch.setenv("NEWS_API_KEY", "cle")
-    stocks._last_newsapi["at"] = 0.0
-    assert stocks._news_key() == "cle"
-    assert stocks._news_key() == ""  # deuxième actualisation juste après : pas de NewsAPI
+    refresh_control.last_newsapi["at"] = 0.0
+    assert refresh_control.news_key() == "cle"
+    assert refresh_control.news_key() == ""  # deuxième actualisation juste après : pas de NewsAPI
 
 
 def test_threshold_change_applies_immediately_without_refresh(api, repo, monkeypatch):
@@ -352,9 +353,47 @@ def test_stock_detail_has_intraday_day_and_week_views(api):
 
 def test_intraday_unavailable_until_migration_004(api, repo):
     repo.intraday_table_exists = False
-    stocks._last_refresh["at"] = 0.0
+    refresh_control.last_refresh["at"] = 0.0
     report = api.post("/api/market/refresh", params={"attendre": "true"}).json()
     assert any("intraday" in e for e in report["erreurs"])
     assert len(report["actions"]) == 5  # le reste de l'actualisation a fonctionné
     body = api.get("/api/stocks/DSY.PA").json()["graphique"]["intraday"]
     assert body == {"disponible": False, "jour": [], "semaine": [], "derniere_bougie": None}
+
+
+# --- Actualisation automatique à la consultation (D-13) ----------------------------------
+
+
+def test_dashboard_starts_refresh_when_data_older_than_one_hour(api, repo):
+    refresh_control.last_refresh["at"] = 0.0
+    for action in repo.actions:
+        action["maj_le"] = (NOW - timedelta(hours=2)).isoformat()
+    before = len(repo.scores)
+    body = api.get("/api/dashboard").json()
+    assert body["actualisation"]["lancee_automatiquement"] is True
+    assert len(repo.scores) == before + 5  # la tâche de fond a tourné (TestClient l'attend)
+    again = api.get("/api/dashboard").json()  # moins de 2 minutes après : pas de nouvelle
+    assert again["actualisation"]["lancee_automatiquement"] is False
+
+
+def test_dashboard_does_not_refresh_fresh_data(api, repo):
+    refresh_control.last_refresh["at"] = 0.0
+    for action in repo.actions:
+        action["maj_le"] = (NOW - timedelta(minutes=20)).isoformat()
+    before = len(repo.scores)
+    assert api.get("/api/dashboard").json()["actualisation"]["lancee_automatiquement"] is False
+    assert len(repo.scores) == before
+
+
+def test_is_stale():
+    assert refresh_control.is_stale(None, NOW)
+    assert refresh_control.is_stale((NOW - timedelta(minutes=61)).isoformat(), NOW)
+    assert not refresh_control.is_stale((NOW - timedelta(minutes=59)).isoformat().replace("+00:00", "Z"), NOW)
+    assert not refresh_control.is_stale("2026-11-25T16:30:00", NOW)  # sans fuseau : UTC
+
+
+def test_dashboard_gives_small_weekly_change_precisely_with_euros(api, repo):
+    repo.portfolio["val_semaine_prec"] = Decimal("500040.00")  # perte de 40 € sur la semaine
+    body = api.get("/api/dashboard").json()
+    assert body["variation_hebdo_eur"] == -40.0
+    assert body["variation_hebdo_pct"] == pytest.approx(-0.008, abs=1e-4)
