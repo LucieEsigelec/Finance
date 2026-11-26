@@ -1,5 +1,6 @@
-import { ExternalLink } from 'lucide-react'
+import { ArrowLeftRight, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { eur, eurKpi, integer, note, pct, pctPlain, trendClass } from '../../lib/format'
 import AmountInput from '../ui/AmountInput'
 import DecisionBadge from '../ui/DecisionBadge'
@@ -216,13 +217,35 @@ export function PillarWeights({ piliers }) {
 }
 
 /** En-tête de la fiche : nom, code, cours, variation, conseil, note, actions détenues. */
+/**
+ * Raccourci « Acheter / vendre » (D-22) : ouvre le simulateur avec l'action déjà cochée.
+ * Mode Vente si le conseil est VENTE et que des actions sont détenues, sinon mode Achat.
+ * Rien n'est enregistré ici : le seul chemin d'écriture reste Simuler → Valider → confirmation.
+ */
+function TradeLink({ entete }) {
+  const operation = entete.conseil === 'VENTE' && entete.detenues > 0 ? 'VENTE' : 'ACHAT'
+  return (
+    <Link
+      to={`/simulateur?action=${encodeURIComponent(entete.ticker)}&operation=${operation}`}
+      title={`Simuler un achat ou une vente de ${entete.nom}`}
+      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-card px-3 text-[13px] font-semibold text-brand no-underline hover:bg-brand-soft"
+    >
+      <ArrowLeftRight className="size-4" strokeWidth={1.75} aria-hidden="true" />
+      Acheter / vendre
+    </Link>
+  )
+}
+
 export function StockHeader({ entete, color }) {
   return (
     <section className="card flex flex-wrap items-center gap-x-10 gap-y-4 p-4 sm:p-6">
       <div className="flex min-w-[240px] flex-1 items-center gap-3">
         <span className="size-3 rounded-full" style={{ background: `var(--${color})` }} aria-hidden="true" />
         <div>
-          <h1>{entete.nom}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1>{entete.nom}</h1>
+            <TradeLink entete={entete} />
+          </div>
           <div className="ticker">{entete.ticker} · {entete.place} · {entete.secteur.toLowerCase()}</div>
         </div>
       </div>

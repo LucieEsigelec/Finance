@@ -347,7 +347,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 | `WelcomeDialog.jsx` | Le dialogue de bienvenue (nom + profil de risque) à la première connexion |
 | `LogoutDialog.jsx` | La confirmation de déconnexion |
 | `stock/PriceChart.jsx` | Le graphique de la fiche : bougies, moyennes mobiles, Bollinger, panneaux RSI et MACD qui défilent ensemble |
-| `stock/StockCards.jsx` | Les cartes de la fiche : en-tête, conseil, prévision, simulateur de dividende, actualités, ratios, poids des piliers |
+| `stock/StockCards.jsx` | Les cartes de la fiche : en-tête (avec le bouton « Acheter / vendre » qui ouvre le simulateur, action cochée), conseil, prévision, simulateur de dividende, actualités, ratios, poids des piliers |
 
 ### 6.6 Les pages
 
@@ -355,7 +355,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 |---|---|
 | **Accueil** (`AccueilPage.jsx`) | « Bonjour M. Dupont », valeur du portefeuille, performance de la semaine (en % et en €), cash, conseils de la semaine classés ACHAT / RIEN / VENTE, raccourcis |
 | **Tableau de bord** (`DashboardPage.jsx`) | 4 cartes chiffrées, jauge de perte, tableau des 5 actions, profil en cours |
-| **Simulateur** (`SimulatorPage.jsx`) | Formulaire à gauche ; à droite une carte de conseil par action, un récapitulatif, puis la validation action par action. En vente, une case trop grande passe en rouge et « Simuler » se grise. |
+| **Simulateur** (`SimulatorPage.jsx`) | Formulaire à gauche ; à droite une carte de conseil par action, un récapitulatif, puis la validation action par action. En vente, une case trop grande passe en rouge et « Simuler » se grise. Depuis une fiche action, `?action=…&operation=…` coche l'action et choisit le mode. |
 | **Fiche action** (`StockDetailPage.jsx`) | Sélecteur des 5 actions par leur nom, en-tête, onglet **Graphique** (périodes 1J, 1S, 1M, 3M, 6M, 1A, indicateurs à cocher, conseil, prévision, dividende) et onglet **Infos** (actualités notées, ratios, poids des piliers) |
 | **Historique** (`HistoryPage.jsx`) | Bilan, courbe de valeur (opérations d'un même jour regroupées sous un seul repère), journal paginé avec le conseil donné à ce moment |
 | **Profil** (`ProfilePage.jsx`) | Choix du profil de risque, thème, déconnexion |
