@@ -7,8 +7,9 @@ import { useToast } from '../../context/ToastContext'
 import { formatDateTime } from '../../lib/format'
 import LogoutDialog from '../LogoutDialog'
 import Button from '../ui/Button'
+import Logo from './Logo'
 
-// NavBar (UI §4.1, maquette NavBar) : nom de l'application (retour à l'accueil), 6 onglets
+// NavBar (UI §4.1, maquette NavBar) : logo « Prisme » (D-21) (retour à l'accueil), 6 onglets
 // (dont Profil, D-17), date des données, bouton « Actualiser les données », bascule clair / sombre. « Actions » ouvre la fiche DSY.PA (D-09).
 const TABS = [
   { to: '/', label: 'Accueil', end: true },
@@ -23,16 +24,6 @@ const TABS = [
 const stampFormat = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 function shortStamp(iso) {
   return iso ? stampFormat.format(new Date(iso)).replace(' à ', ', ') : '—'
-}
-
-function Logo() {
-  return (
-    <svg viewBox="0 0 20 20" className="size-5 text-brand" aria-hidden="true">
-      <rect x="2" y="9" width="3.5" height="9" rx="1" fill="currentColor" />
-      <rect x="8.25" y="5" width="3.5" height="13" rx="1" fill="currentColor" />
-      <rect x="14.5" y="2" width="3.5" height="16" rx="1" fill="currentColor" />
-    </svg>
-  )
 }
 
 export default function NavBar() {
@@ -55,9 +46,8 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-line bg-card">
       <div className="mx-auto flex h-full max-w-[1280px] items-center gap-6 px-4 sm:px-6">
-        <NavLink to="/" className="flex items-center gap-2 text-[17px] font-bold tracking-[-.01em] text-ink no-underline">
+        <NavLink to="/" aria-label="PrimeInvest, retour à l'accueil" className="shrink-0 no-underline">
           <Logo />
-          <span className="hidden sm:inline">PrimeInvest</span>
         </NavLink>
         <nav aria-label="Navigation principale" className="flex flex-1 gap-1 overflow-x-auto">
           {TABS.map((tab) => (

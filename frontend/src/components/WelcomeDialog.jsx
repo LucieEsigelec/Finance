@@ -4,6 +4,7 @@ import { useDashboard } from '../context/DashboardContext'
 import { useToast } from '../context/ToastContext'
 import { note as fmtNote } from '../lib/format'
 import Button from './ui/Button'
+import { LogoMark } from './layout/Logo'
 
 // Dialogue de bienvenue (D-18) : à la première connexion, tant qu'aucun profil de risque n'a
 // été choisi, l'application demande le nom du client et son profil (Prudent, Équilibré,
@@ -68,6 +69,7 @@ export default function WelcomeDialog() {
         className="my-auto flex w-full max-w-2xl flex-col gap-5 rounded-lg bg-card p-6 shadow-[var(--shadow-dialog)]"
       >
         <div>
+          <LogoMark className="mb-3 size-10" />
           <h2 id="bienvenue-titre" className="text-[24px] leading-8">Bienvenue sur PrimeInvest</h2>
           <p className="mt-2 mb-0 text-muted">
             Avant de commencer, indiquez votre nom et la façon dont vous souhaitez être conseillé. Vous pourrez changer ces
