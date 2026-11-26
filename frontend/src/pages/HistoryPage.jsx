@@ -15,8 +15,65 @@ import { STOCKS } from '../lib/stocks'
 
 const PERIODS = [['1s', '1 semaine'], ['1m', '1 mois'], ['3m', '3 mois'], ['1a', '1 an']]
 const shortDate = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' })
-/** Axe en k€ : une décimale de plus quand la valeur bouge peu (sinon « 500 k€ » partout). */
-const kEur = (span) => (v) => `${(v / 1000).toLocaleString('fr-FR', { maximumFractionDigits: span < 10000 ? 1 : 0 })}\u00a0k€`
+const eur0 = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+const axisEur = (v) => eur0.format(v).replace(/-/g, '\u2212')
+
+/** Graduations « rondes » (pas de 1, 2, 2,5 ou 5 × 10ⁿ €) couvrant la courbe, avec de la place
+ *  en haut pour les étiquettes des opérations (D-18). */
+function niceTicks(min, max) {
+  const raw = Math.max(max - min, 400) / 4
+  const power = 10 ** Math.floor(Math.log10(raw))
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((v) => v >= raw)
+  const low = Math.floor((min - step * 0.25) / step) * step
+  const high = Math.ceil((max + step * 0.25) / step) * step + step
+  const ticks = []
+  for (let v = low; v <= high + 1e-6; v += step) ticks.push(Math.round(v))
+  return ticks
+}
+
+/** Les opérations d'un même jour sont regroupées : un seul repère, une étiquette sur deux lignes. */
+function groupMarkers(markers) {
+  const byDate = {}
+  markers.forEach((m) => {
+    const day = (byDate[m.date] ||= { date: m.date, achats: [], ventes: [] })
+    const list = m.operation === 'ACHAT' ? day.achats : day.ventes
+    const code = m.ticker.split('.')[0]
+    if (!list.includes(code)) list.push(code)
+  })
+  return Object.values(byDate)
+}
+
+function MarkerLabel({ viewBox, day, edge }) {
+  if (!viewBox) return null
+  // Au premier et au dernier jour, l'étiquette est tournée vers l'intérieur du graphique (pas coupée au bord).
+  const center = viewBox.x + viewBox.width / 2
+  const x = edge === 'end' ? center + 6 : edge === 'start' ? center - 6 : center
+  const anchor = edge === 'end' ? 'end' : edge === 'start' ? 'start' : 'middle'
+  const lines = [
+    day.achats.length && { text: `▲ ${day.achats.join(', ')}`, fill: 'var(--buy)' },
+    day.ventes.length && { text: `▼ ${day.ventes.join(', ')}`, fill: 'var(--sell)' },
+  ].filter(Boolean)
+  return (
+    <text x={x} y={viewBox.y - 8 - (lines.length - 1) * 15} textAnchor={anchor} fontSize={12} fontWeight={600} stroke="var(--surface-card)" strokeWidth={4} paintOrder="stroke" strokeLinejoin="round">
+      {lines.map((line, i) => (
+        <tspan key={line.text} x={x} dy={i === 0 ? 0 : 15} fill={line.fill}>{line.text}</tspan>
+      ))}
+    </text>
+  )
+}
+
+function ChartTooltip({ active, payload, label, operations }) {
+  if (!active || !payload?.length) return null
+  const day = operations[label]
+  return (
+    <div className="rounded-md border border-line bg-card px-3 py-2 text-[13px] shadow-[var(--shadow-card)]">
+      <div className="font-semibold">{formatDate(label)}</div>
+      <div className="num">{eur(payload[0].value)}</div>
+      {day?.achats.length > 0 && <div className="text-buy">▲ Achat : {day.achats.join(', ')}</div>}
+      {day?.ventes.length > 0 && <div className="text-sell">▼ Vente : {day.ventes.join(', ')}</div>}
+    </div>
+  )
+}
 
 export default function HistoryPage() {
   const [periode, setPeriode] = useState('1m')
@@ -43,10 +100,12 @@ export default function HistoryPage() {
 
   const { bilan } = data
   const values = data.courbe.map((p) => p.valeur).concat(data.capital_initial)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const pad = Math.max(1000, (max - min) * 0.15)
+  const ticks = niceTicks(Math.min(...values), Math.max(...values))
   const valueAt = Object.fromEntries(data.courbe.map((p) => [p.date, p.valeur]))
+  const days = groupMarkers(data.marqueurs).filter((d) => valueAt[d.date] !== undefined)
+  const operations = Object.fromEntries(days.map((d) => [d.date, d]))
+  const firstDate = data.courbe[0]?.date
+  const lastDate = data.courbe[data.courbe.length - 1]?.date
   const dividendDetail = Object.entries(bilan.dividendes_par_titre).map(([t, v]) => `${t.split('.')[0]} ${eur(v)}`).join(' · ')
 
   return (
@@ -100,29 +159,25 @@ export default function HistoryPage() {
         </div>
         <div className="h-72" role="img" aria-label="Courbe de la valeur du portefeuille">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.courbe} margin={{ top: 24, right: 16, bottom: 0, left: 8 }}>
+            <LineChart data={data.courbe} margin={{ top: 16, right: 32, bottom: 0, left: 8 }}>
               <CartesianGrid stroke="var(--line)" vertical={false} />
               <XAxis dataKey="date" tickFormatter={(d) => shortDate.format(new Date(d))} stroke="var(--ink-muted)" tick={{ fontSize: 12 }} minTickGap={40} />
-              <YAxis domain={[min - pad, max + pad]} tickFormatter={kEur(max - min + 2 * pad)} stroke="var(--ink-muted)" tick={{ fontSize: 12 }} width={64} />
-              <Tooltip
-                formatter={(v) => [eur(v), 'Valeur']}
-                labelFormatter={(d) => formatDate(d)}
-                contentStyle={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 8 }}
-              />
-              <ReferenceLine y={data.capital_initial} stroke="var(--ink-muted)" strokeDasharray="4 4" label={{ value: `Départ : ${eurKpi(data.capital_initial)}`, position: 'insideBottomRight', fill: 'var(--ink-muted)', fontSize: 12 }} />
+              <YAxis domain={[ticks[0], ticks[ticks.length - 1]]} ticks={ticks} tickFormatter={axisEur} stroke="var(--ink-muted)" tick={{ fontSize: 12 }} width={88} />
+              <Tooltip content={<ChartTooltip operations={operations} />} />
+              <ReferenceLine y={data.capital_initial} stroke="var(--ink-muted)" strokeDasharray="4 4" label={{ value: `Départ : ${eurKpi(data.capital_initial)}`, position: 'insideBottomLeft', fill: 'var(--ink-muted)', fontSize: 12 }} />
               <Line type="monotone" dataKey="valeur" stroke="var(--brand)" strokeWidth={2} dot={false} isAnimationActive={false} />
-              {data.marqueurs.filter((m) => valueAt[m.date] !== undefined).map((m) => {
-                const buy = m.operation === 'ACHAT'
+              {days.map((day) => {
+                const mixed = day.achats.length && day.ventes.length
                 return (
                   <ReferenceDot
-                    key={`${m.date}-${m.ticker}-${m.operation}`}
-                    x={m.date}
-                    y={valueAt[m.date]}
+                    key={day.date}
+                    x={day.date}
+                    y={valueAt[day.date]}
                     r={5}
                     fill="var(--surface-card)"
-                    stroke={buy ? 'var(--buy)' : 'var(--sell)'}
+                    stroke={mixed ? 'var(--ink)' : day.achats.length ? 'var(--buy)' : 'var(--sell)'}
                     strokeWidth={2}
-                    label={{ value: `${buy ? '▲' : '▼'} ${m.ticker.split('.')[0]}`, position: 'top', fill: buy ? 'var(--buy)' : 'var(--sell)', fontSize: 12, fontWeight: 600 }}
+                    label={<MarkerLabel day={day} edge={day.date === lastDate ? 'end' : day.date === firstDate ? 'start' : null} />}
                   />
                 )
               })}

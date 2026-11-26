@@ -82,16 +82,23 @@ export default function StockDetailPage() {
         <Link to="/tableau-de-bord" className="inline-flex items-center gap-1 text-[13px] font-medium text-brand no-underline">
           <ArrowLeft className="size-4" strokeWidth={1.75} aria-hidden="true" /> Tableau de bord
         </Link>
-        <nav aria-label="Autres actions" className="flex flex-wrap gap-1">
-          {STOCKS.map((s) => (
-            <Link
-              key={s.ticker}
-              to={`/action/${s.ticker}`}
-              className={`rounded-md px-2 py-1 font-mono text-[12px] no-underline ${s.ticker === code ? 'bg-brand-soft font-semibold text-brand' : 'text-muted hover:text-ink'}`}
-            >
-              {s.ticker}
-            </Link>
-          ))}
+        <nav aria-label="Choisir une action" className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-semibold text-muted">Voir une autre action :</span>
+          {STOCKS.map((s) => {
+            const current = s.ticker === code
+            return (
+              <Link
+                key={s.ticker}
+                to={`/action/${s.ticker}`}
+                aria-current={current ? 'page' : undefined}
+                title={`${s.nom} (${s.ticker})`}
+                className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-[14px] no-underline ${current ? 'border-brand bg-brand-soft font-semibold text-brand' : 'border-line-strong bg-card text-ink hover:bg-sunken'}`}
+              >
+                <span className="size-2 rounded-full" style={{ background: `var(--${s.color})` }} aria-hidden="true" />
+                {s.nom}
+              </Link>
+            )
+          })}
         </nav>
       </div>
 

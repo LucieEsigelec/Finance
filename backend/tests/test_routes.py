@@ -466,7 +466,7 @@ def test_profile_lists_the_three_profiles_and_defaults(api):
     body = api.get("/api/profil").json()
     assert [p["id"] for p in body["profils"]] == ["prudent", "equilibre", "dynamique"]
     assert [(p["seuil_achat"], p["seuil_vente"]) for p in body["profils"]] == [(60, 40), (55, 45), (50, 40)]
-    assert body["profil"] == {"id": None, "nom": "Par défaut", "seuil_achat": 60.0, "seuil_vente": 40.0}
+    assert body["profil"] == {"id": None, "nom": "Par défaut", "seuil_achat": 60.0, "seuil_vente": 40.0, "a_choisir": True}
     assert body["enregistrable"] is True and set(body["notes"]) == set(config.TICKERS)
 
 
@@ -498,3 +498,17 @@ def test_profile_not_saved_before_migration_005(api, repo):
     assert body["enregistrable"] is False
     response = api.put("/api/profil", json={"profil": "prudent"})
     assert response.status_code == 409 and "migration 005" in response.json()["detail"]
+
+
+def test_first_connection_asks_for_profile_and_name(api, repo):
+    """D-18 : sans profil choisi, le tableau de bord demande le dialogue de bienvenue."""
+    assert api.get("/api/dashboard").json()["profil"]["a_choisir"] is True
+    response = api.put("/api/profil", json={"profil": "equilibre", "nom_client": "  M.   Dupont "})
+    assert response.status_code == 200
+    assert repo.portfolio["nom_client"] == "M. Dupont" and repo.portfolio["profil_risque"] == "equilibre"
+    body = api.get("/api/dashboard").json()
+    assert body["profil"]["a_choisir"] is False and body["nom_client"] == "M. Dupont"
+
+
+def test_blank_name_is_refused(api):
+    assert api.put("/api/profil", json={"profil": "prudent", "nom_client": "   "}).status_code == 422

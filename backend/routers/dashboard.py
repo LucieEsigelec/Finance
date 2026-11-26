@@ -64,6 +64,8 @@ def profile_summary(state) -> dict[str, Any]:
         "nom": profile["nom"] if profile else "Par défaut",
         "seuil_achat": state.seuils[0],
         "seuil_vente": state.seuils[1],
+        # Première connexion : aucun profil choisi et la base peut l'enregistrer → dialogue de bienvenue (D-18)
+        "a_choisir": state.profil is None and "profil_risque" in state.portfolio,
     }
 
 
