@@ -294,7 +294,7 @@ Ne pas coder une partie dont la formule n'est pas dans la SPEC, ni un écran qui
 - [ ] Bollinger et RSI : lecture « retour à la moyenne » ?
 - [ ] Plusieurs titres cochés : montant appliqué à chacun ou réparti ?
 - [ ] Importance des actualités (1 / 0,5), demi-vie de 2 jours : à confirmer après un premier test.
-- [ ] Nom définitif de l'application et logo (« Portefeuille 500k » provisoire).
+- [x] Nom de l'application : **PrimeInvest** (D-14). Logo : pas encore (le nom s'écrit en Inter 600, couleur `ink`).
 
 ---
 

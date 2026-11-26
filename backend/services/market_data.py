@@ -37,7 +37,7 @@ from services.info_scoring import impact_score
 from services.sentiment import is_announcement, sentiment
 
 log = logging.getLogger(__name__)
-USER_AGENT = "portefeuille-500k/0.1 (outil d'aide a la decision)"
+USER_AGENT = "primeinvest/0.1 (outil d'aide a la decision)"
 
 
 def _round(value: float | None, digits: int = 2) -> str | None:

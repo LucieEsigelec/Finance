@@ -1,4 +1,4 @@
-# Guide du code — Portefeuille 500k
+# Guide du code — PrimeInvest
 
 Ce guide explique **simplement** comment le code est organisé et comment il fonctionne. Il est complété à chaque étape du développement. Pour les règles du projet, voir `CLAUDE.md` ; pour les formules exactes, la spécification (`docs/03_specification.md`).
 

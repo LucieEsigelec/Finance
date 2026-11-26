@@ -1,4 +1,4 @@
-# Frontend — Portefeuille 500k
+# Frontend — PrimeInvest
 
 Interface React 19 + Vite 8 + Tailwind CSS 4. Elle ne parle qu'à l'API FastAPI (`VITE_API_URL`).
 

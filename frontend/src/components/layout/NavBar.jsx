@@ -44,7 +44,7 @@ export default function NavBar() {
       <div className="mx-auto flex h-full max-w-[1280px] items-center gap-6 px-4 sm:px-6">
         <NavLink to="/" className="flex items-center gap-2 text-[17px] font-bold tracking-[-.01em] text-ink no-underline">
           <Logo />
-          <span className="hidden sm:inline">Portefeuille 500k</span>
+          <span className="hidden sm:inline">PrimeInvest</span>
         </NavLink>
         <nav aria-label="Navigation principale" className="flex flex-1 gap-1 overflow-x-auto">
           {TABS.map((tab) => (

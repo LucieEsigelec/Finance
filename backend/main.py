@@ -35,7 +35,7 @@ def create_app(settings: config.Settings | None = None) -> FastAPI:
     settings = settings or config.load_settings()
 
     app = FastAPI(
-        title="Portefeuille 500k — API",
+        title="PrimeInvest — API",
         version=API_VERSION,
         description=(
             "Outil d'aide à la décision sur un portefeuille virtuel : "
