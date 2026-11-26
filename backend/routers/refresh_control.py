@@ -35,10 +35,10 @@ def news_key() -> str:
     return ""
 
 
-def run(repo, collector) -> None:
-    """Fait l'actualisation complète et note son résultat."""
+def run(repo, collector, analyzer=None) -> None:
+    """Fait l'actualisation complète et note son résultat (analyzer : modèle de langue, D-16)."""
     try:
-        state["rapport"] = refresh(repo, collector, news_api_key=news_key())
+        state["rapport"] = refresh(repo, collector, news_api_key=news_key(), analyzer=analyzer)
         state["erreur"] = None
     except Exception as error:  # l'erreur est montrée à l'interface, la clé n'y figure jamais
         state["erreur"] = f"{type(error).__name__}: {error}"

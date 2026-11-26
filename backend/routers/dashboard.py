@@ -17,7 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 
 import config
 from routers import refresh_control
-from routers.deps import get_collector, get_now, get_repo, money
+from routers.deps import get_collector, get_news_analyzer, get_now, get_repo, money
 from services.decision_engine import ATTEINT
 from services.portfolio_service import MENTION, load_state, week_bounds, with_alert
 from services.ratio_scoring import estimated_dividend
@@ -61,6 +61,7 @@ def dashboard(
     background: BackgroundTasks,
     repo=Depends(get_repo),
     collector=Depends(get_collector),
+    analyzer=Depends(get_news_analyzer),
     now: datetime = Depends(get_now),
 ) -> dict[str, Any]:
     state = load_state(repo)
@@ -70,7 +71,7 @@ def dashboard(
     if refresh_control.is_stale(state.date_donnees, now):
         outcome, _ = refresh_control.reserve()
         if outcome == "ok":
-            background.add_task(refresh_control.run, repo, collector)
+            background.add_task(refresh_control.run, repo, collector, analyzer)
             auto = True
     portfolio = state.portfolio
     capital = portfolio["capital_initial"]

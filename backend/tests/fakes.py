@@ -144,12 +144,18 @@ class FakeRepository:
         rows = [a for a in self.articles if a["action_id"] == action_id and a["date_pub"] >= since]
         return sorted(rows, key=lambda a: a["date_pub"], reverse=True)
 
-    def insert_missing_articles(self, action_id, articles, since):
+    def filter_new_articles(self, action_id, articles, since):
         known = {a["titre"].lower() for a in self.articles if a["action_id"] == action_id}
-        new = [{**a, "action_id": action_id, "id": str(uuid.uuid4())} for a in articles
-               if a["titre"].lower() not in known]
+        return [a for a in articles if a["titre"].lower() not in known]
+
+    def insert_missing_articles(self, action_id, articles, since):
+        new = [{**a, "action_id": action_id, "id": str(uuid.uuid4())}
+               for a in self.filter_new_articles(action_id, articles, since)]
         self.articles += new
         return len(new)
+
+    def update_article_score(self, article_id, score):
+        next(a for a in self.articles if a["id"] == article_id)["score_impact"] = score
 
     # scores
     def insert_scores(self, rows):

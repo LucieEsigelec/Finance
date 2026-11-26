@@ -29,7 +29,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 import config
 from routers import refresh_control
 from routers.dashboard import stock_row
-from routers.deps import check_ticker, get_collector, get_now, get_repo, money
+from routers.deps import check_ticker, get_collector, get_news_analyzer, get_now, get_repo, money
 from services import market_data
 from services.decision_engine import forecast_euros
 from services.info_scoring import article_weight
@@ -279,6 +279,7 @@ def market_refresh(
     attendre: bool = False,
     repo=Depends(get_repo),
     collector=Depends(get_collector),
+    analyzer=Depends(get_news_analyzer),
 ) -> dict[str, Any]:
     outcome, wait = refresh_control.reserve()
     if outcome == "en_cours":
@@ -290,11 +291,11 @@ def market_refresh(
             headers={"Retry-After": str(wait)},
         )
     if attendre:
-        refresh_control.run(repo, collector)
+        refresh_control.run(repo, collector, analyzer)
         error = refresh_control.state["erreur"]
         response.status_code = 500 if error else 200
         return {"statut": "erreur" if error else "termine", "erreur": error, **(refresh_control.state["rapport"] or {})}
-    background.add_task(refresh_control.run, repo, collector)
+    background.add_task(refresh_control.run, repo, collector, analyzer)
     return {"statut": "lance", "lance_le": refresh_control.state["lance_le"]}
 
 

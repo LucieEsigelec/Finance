@@ -15,11 +15,17 @@ import sys
 from config import load_settings
 from db.repository import SupabaseRepository
 from db.supabase_client import get_client
+from services.news_nlp import ClaudeNewsAnalyzer
 from services.refresh_service import MarketCollector, refresh
 
 
 def main() -> int:
-    report = refresh(SupabaseRepository(get_client()), MarketCollector(), news_api_key=load_settings().news_api_key)
+    report = refresh(
+        SupabaseRepository(get_client()),
+        MarketCollector(),
+        news_api_key=load_settings().news_api_key,
+        analyzer=ClaudeNewsAnalyzer.from_settings(),  # None sans clé : lexique
+    )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 

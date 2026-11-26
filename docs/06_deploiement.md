@@ -21,6 +21,7 @@ Comptez une trentaine de minutes la première fois. L'ordre compte : l'API d'abo
    | `SUPABASE_URL` | la même que dans `backend/.env` |
    | `SUPABASE_KEY` | la clé secrète (`service_role` / `sb_secret_…`) |
    | `NEWS_API_KEY` | la clé NewsAPI |
+   | `ANTHROPIC_API_KEY` | la clé Anthropic (analyse des actualités par Claude, D-16) ; facultative |
    | `CORS_ORIGINS` | laissez `http://localhost:5173` pour l'instant (étape 3) |
 
 3. Lancez le déploiement. Au bout de quelques minutes, l'adresse ressemble à `https://portefeuille-500k-api.onrender.com`. Vérifiez : `https://…onrender.com/api/health` doit répondre `{"status":"ok", …}`.

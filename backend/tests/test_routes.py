@@ -36,6 +36,7 @@ def api(repo):
     app.dependency_overrides[deps.get_repo] = lambda: repo
     app.dependency_overrides[deps.get_now] = lambda: NOW
     app.dependency_overrides[deps.get_collector] = lambda: FakeCollector(NOW.date())
+    app.dependency_overrides[deps.get_news_analyzer] = lambda: None  # jamais d'appel au modèle
     refresh_control.reset()
     refresh_control.last_refresh["at"] = time.monotonic()  # données fraîches : pas d'actualisation auto
     return TestClient(app)
