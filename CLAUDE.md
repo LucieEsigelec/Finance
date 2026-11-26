@@ -294,7 +294,7 @@ Ne pas coder une partie dont la formule n'est pas dans la SPEC, ni un écran qui
 - [ ] Bollinger et RSI : lecture « retour à la moyenne » ?
 - [ ] Plusieurs titres cochés : montant appliqué à chacun ou réparti ?
 - [ ] Importance des actualités (1 / 0,5), demi-vie de 2 jours : à confirmer après un premier test.
-- [x] Nom de l'application : **PrimeInvest** (D-14). Logo : pas encore (le nom s'écrit en Inter 600, couleur `ink`).
+- [x] Nom de l'application : **PrimeInvest** (D-14). Logo : « Prisme » (D-21), composant `layout/Logo.jsx`.
 
 ---
 

@@ -42,6 +42,16 @@
   --font-mono: var(--font-mono);
 }
 
+
+/* Logo « Prisme » (D-21) : 5 facettes, plus claires en thème sombre. --logo-edge = fond de la barre. */
+:root, [data-theme="light"] {
+  --logo-1: #8ccdd7; --logo-2: #5cb0bd; --logo-3: #2f8794; --logo-4: #0a5c6a; --logo-5: #063d47;
+  --logo-edge: var(--surface-card);
+}
+[data-theme="dark"] {
+  --logo-1: #bfe6ec; --logo-2: #8fd3de; --logo-3: #5cbccc; --logo-4: #3a9eae; --logo-5: #2a8291;
+}
+
 @layer base {
   html { color-scheme: light; }
   html[data-theme="dark"] { color-scheme: dark; }

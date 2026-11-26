@@ -339,6 +339,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 | Composant | Rôle |
 |---|---|
 | `layout/NavBar.jsx` | 6 onglets, date des données, thème, « Actualiser », « Se déconnecter » |
+| `layout/Logo.jsx` | Le logo « Prisme » (5 facettes de bleu pétrole) et le nom PRIMEINVEST ; ses couleurs (`--logo-1` à `--logo-5`) changent avec le thème |
 | `StocksTable.jsx` | Le tableau des 5 actions du tableau de bord (un clic ouvre la fiche) |
 | `RiskIndicator.jsx` | La jauge de perte de la semaine avec les repères −7 % et −10 % |
 | `SimulatorPanel.jsx` | Le formulaire du simulateur : Achat / Vente, une case de montant par action, total, actions détenues en vente |
