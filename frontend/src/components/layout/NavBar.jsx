@@ -14,7 +14,7 @@ import Logo from './Logo'
 const TABS = [
   { to: '/', label: 'Accueil', end: true },
   { to: '/tableau-de-bord', label: 'Tableau de bord' },
-  { to: '/simulateur', label: 'Simulateur' },
+  { to: '/ordres', label: 'Acheter / vendre' },
   { to: '/action/DSY.PA', label: 'Actions', match: '/action/' },
   { to: '/historique', label: 'Historique' },
   { to: '/profil', label: 'Profil' },

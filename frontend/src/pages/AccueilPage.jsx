@@ -12,7 +12,7 @@ import { COLOR_BY_TICKER } from '../lib/stocks'
 
 const LINKS = [
   { to: '/tableau-de-bord', title: 'Tableau de bord', text: 'Valeur, alerte de perte et conseil sur vos 5 actions.', Icon: LayoutGrid },
-  { to: '/simulateur', title: 'Simulateur', text: 'Testez un achat ou une vente et obtenez un conseil argumenté.', Icon: Calculator },
+  { to: '/ordres', title: 'Acheter / vendre', text: 'Préparez un achat ou une vente : vous voyez le conseil argumenté avant de valider.', Icon: Calculator },
   { to: '/historique', title: 'Historique', text: 'Vos opérations et la performance du portefeuille.', Icon: History },
 ]
 

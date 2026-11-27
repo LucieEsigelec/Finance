@@ -111,6 +111,7 @@ export default function WelcomeDialog() {
                 <span className="font-semibold">{p.nom}</span>
                 <span className="num ml-2 text-[13px] text-muted">
                   achat si note ≥ {fmtNote(p.seuil_achat)} · vente si note ≤ {fmtNote(p.seuil_vente)}
+                  {p.part_max_action_pct ? ` · au plus ${p.part_max_action_pct} % du capital par action` : ' · sans limite par action'}
                 </span>
                 <span className="mt-1 block text-[13px] text-muted">{p.description}</span>
               </span>

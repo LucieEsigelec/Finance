@@ -1,4 +1,4 @@
-import { eur, integer } from '../../lib/format'
+import { eur, integer, pctPlain } from '../../lib/format'
 import { VERDICTS } from '../../lib/verdicts'
 import DecisionBadge from './DecisionBadge'
 import ForecastBar from './ForecastBar'
@@ -24,6 +24,16 @@ export default function AdviceCard({ result, children }) {
         <Fact label={isBuy ? 'Reste en cash' : 'Montant non vendu'} value={eur(result.reliquat_cash)} />
         <Fact label={isBuy ? 'Dividende estimé / an' : 'Dividende perdu / an'} value={eur(result.dividende_annuel_estime_eur)} />
       </dl>
+      {result.exposition && result.verdict !== 'REFUSE' && (
+        <div className="text-[13px]">
+          <span className="text-muted">Part de votre capital sur cette action : </span>
+          <span className="num font-semibold">{pctPlain(result.exposition.actuelle_pct)} → {pctPlain(result.exposition.apres_pct)}</span>
+          <span className="text-muted">{result.exposition.max_pct ? ` (limite de votre profil : ${result.exposition.max_pct} %)` : ''}</span>
+          {result.exposition.avertissement && (
+            <div role="note" className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-warn">{result.exposition.avertissement}</div>
+          )}
+        </div>
+      )}
       {result.prevision_semaine_pct ? (
         <div>
           <div className="label-caps mb-2">Prévision de la semaine</div>

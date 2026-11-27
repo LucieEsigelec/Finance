@@ -9,8 +9,10 @@ En bref, pour chaque titre coché :
    impossible donne le verdict REFUSE avec sa raison (affichée comme un conseil) ;
 4. on ajoute la prévision en % et en euros, les raisons et le niveau d'alerte.
 
-Chaque action cochée a son propre montant (D-14) ; pour un achat, le cash est décompté
-ligne après ligne, et la réponse contient le total de l'opération.
+Chaque action cochée a son propre montant (D-14), en euros ou en nombre d'actions (D-26) ;
+pour un achat, le cash est décompté ligne après ligne, et la réponse contient le total.
+Un achat qui ferait dépasser la part du capital permise par le profil est refusé (Prudent,
+Équilibré) ou signalé (Dynamique) — D-26.
 """
 
 from __future__ import annotations
@@ -25,13 +27,15 @@ from models.schemas import SimulateRequest
 from routers.deps import check_ticker, get_now, get_repo, money
 from services.decision_engine import (
     ATTEINT,
+    CENT,
     REFUSE,
+    Operation,
     RIEN,
     fmt_eur,
     forecast_euros,
     simulate_operation,
 )
-from services.portfolio_service import MENTION, load_state, with_alert
+from services.portfolio_service import MENTION, exposure_check, load_state, with_alert
 
 router = APIRouter(prefix="/api", tags=["simulateur"])
 
@@ -53,16 +57,29 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
         details = score.get("details_piliers", {})
         conseil = score.get("decision", RIEN)
         price = state.prices[ticker]
+        held = state.held.get(ticker, 0)
+        # Saisie en nombre d'actions (D-26) : montant exact = quantité × cours, sans reste.
+        montant = (price * line.quantite).quantize(CENT) if line.quantite is not None else line.montant_eur
         operation = simulate_operation(
             request.operation,
-            line.montant_eur,
+            montant,
             price,
             available,
-            state.held.get(ticker, 0),
+            held,
             conseil,
             state.niveau_alerte,
             action.get("dividende_estime"),
         )
+        refuse = None
+        if line.quantite is not None and request.operation == "VENTE" and 0 < held < line.quantite:
+            refuse = f"Vous ne détenez que {held} action{'s' if held > 1 else ''} {action['nom']} : vente impossible."
+        exposition = None
+        if request.operation == "ACHAT" and operation.verdict != REFUSE:
+            exposition = exposure_check(state, ticker, operation.montant_reel)
+            if exposition["depasse"]:
+                refuse = exposition["message"]
+        if refuse:
+            operation = Operation(0, Decimal("0.00"), Decimal(str(montant)).quantize(CENT), REFUSE, refuse, Decimal("0.00"))
         if operation.verdict != REFUSE:
             available = available - operation.montant_reel if request.operation == "ACHAT" else available + operation.montant_reel
         raisons = with_alert(details.get("raisons", []), state.niveau_alerte, state.variation_pct)
@@ -76,7 +93,10 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
                 "nom": action["nom"],
                 "cours_actuel": money(price),
                 "operation": request.operation,
-                "montant_demande": money(line.montant_eur),
+                "montant_demande": money(montant),
+                "unite": "actions" if line.quantite is not None else "eur",
+                "quantite_demandee": line.quantite,
+                "exposition": exposition,  # part du capital sur cette action (D-26), achats seulement
                 "quantite_entiere": operation.quantite,
                 "montant_reel_investi": money(operation.montant_reel),
                 "reliquat_cash": money(operation.reliquat),
@@ -99,7 +119,7 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
         )
 
     accepted = [r for r in results if r["verdict"] != REFUSE]
-    requested = sum((line.montant_eur for line in request.operations), Decimal(0))
+    requested = sum((Decimal(r["montant_demande"]) for r in results), Decimal(0))
     refused_for_cash = [r for r in results if r["motif_refus"] and r["motif_refus"].startswith("Vous disposez")]
     warning = None
     if request.operation == "ACHAT" and requested > state.cash:

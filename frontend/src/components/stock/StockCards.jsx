@@ -218,16 +218,16 @@ export function PillarWeights({ piliers }) {
 
 /** En-tête de la fiche : nom, code, cours, variation, conseil, note, actions détenues. */
 /**
- * Raccourci « Acheter / vendre » (D-22) : ouvre le simulateur avec l'action déjà cochée.
+ * Raccourci « Acheter / vendre » (D-22) : ouvre la page Acheter / vendre avec l'action déjà cochée.
  * Mode Vente si le conseil est VENTE et que des actions sont détenues, sinon mode Achat.
- * Rien n'est enregistré ici : le seul chemin d'écriture reste Simuler → Valider → confirmation.
+ * Rien n'est enregistré ici : le seul chemin d'écriture reste Voir le conseil → Valider → confirmation.
  */
 function TradeLink({ entete }) {
   const operation = entete.conseil === 'VENTE' && entete.detenues > 0 ? 'VENTE' : 'ACHAT'
   return (
     <Link
-      to={`/simulateur?action=${encodeURIComponent(entete.ticker)}&operation=${operation}`}
-      title={`Simuler un achat ou une vente de ${entete.nom}`}
+      to={`/ordres?action=${encodeURIComponent(entete.ticker)}&operation=${operation}`}
+      title={`Acheter ou vendre ${entete.nom}`}
       className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-card px-3 text-[13px] font-semibold text-brand no-underline hover:bg-brand-soft"
     >
       <ArrowLeftRight className="size-4" strokeWidth={1.75} aria-hidden="true" />

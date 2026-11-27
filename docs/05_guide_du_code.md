@@ -323,7 +323,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 ### 6.2 Démarrage et navigation
 
 - `main.jsx` démarre l'application et l'entoure de trois « contextes » (données partagées) : le thème, les messages, le tableau de bord.
-- `App.jsx` liste les pages : `/` (Accueil), `/tableau-de-bord`, `/simulateur`, `/action/:ticker` (fiche d'une action), `/historique`, `/profil`. Les pages avec de gros graphiques ne sont chargées qu'à leur ouverture, pour un premier affichage rapide.
+- `App.jsx` liste les pages : `/` (Accueil), `/tableau-de-bord`, `/ordres` (Acheter / vendre ; l'ancienne adresse `/simulateur` redirige), `/action/:ticker` (fiche d'une action), `/historique`, `/profil`. Les pages avec de gros graphiques ne sont chargées qu'à leur ouverture, pour un premier affichage rapide.
 - `components/layout/AppLayout.jsx` est le cadre commun : barre de navigation, bandeau d'alerte (sur toutes les pages dès que le niveau n'est pas AUCUN), page, dialogue de bienvenue.
 
 ### 6.3 Les règles suivies
@@ -354,7 +354,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 | `layout/Logo.jsx` | Le logo « Prisme » (5 facettes de bleu pétrole) et le nom PRIMEINVEST ; ses couleurs (`--logo-1` à `--logo-5`) changent avec le thème |
 | `StocksTable.jsx` | Le tableau des 5 actions du tableau de bord (un clic ouvre la fiche) |
 | `RiskIndicator.jsx` | La jauge de perte de la semaine avec les repères −7 % et −10 % |
-| `SimulatorPanel.jsx` | Le formulaire du simulateur : Achat / Vente, une case de montant par action, total, actions détenues en vente |
+| `SimulatorPanel.jsx` | Le formulaire de la page Acheter / vendre : Achat / Vente, saisie en euros ou en nombre d'actions, une case par action (avec sa conversion et la part du capital), total, actions détenues en vente |
 | `ConfirmDialog.jsx` | La fenêtre de confirmation avant d'enregistrer une opération |
 | `WelcomeDialog.jsx` | Le dialogue de bienvenue (nom + profil de risque) à la première connexion |
 | `LogoutDialog.jsx` | La confirmation de déconnexion |
@@ -367,7 +367,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 |---|---|
 | **Accueil** (`AccueilPage.jsx`) | « Bonjour M. Dupont », valeur du portefeuille, performance de la semaine (en % et en €), cash, conseils de la semaine classés ACHAT / RIEN / VENTE, raccourcis |
 | **Tableau de bord** (`DashboardPage.jsx`) | 4 cartes chiffrées, jauge de perte, tableau des 5 actions, profil en cours |
-| **Simulateur** (`SimulatorPage.jsx`) | Formulaire à gauche ; à droite une carte de conseil par action, un récapitulatif, puis la validation action par action. En vente, une case trop grande passe en rouge et « Simuler » se grise. Depuis une fiche action, `?action=…&operation=…` coche l'action et choisit le mode. |
+| **Acheter / vendre** (`SimulatorPage.jsx`, `/ordres`) | Formulaire à gauche ; à droite une carte de conseil par action (avec la part du capital sur l'action), un récapitulatif, puis la validation action par action. Saisie au choix en euros ou en nombre d'actions (changer d'unité convertit ce qui est saisi). En vente, une case trop grande passe en rouge ; à l'achat, dépasser la limite du profil aussi ; « Voir le conseil » se grise alors. Depuis une fiche action, `?action=…&operation=…` coche l'action et choisit le mode. |
 | **Fiche action** (`StockDetailPage.jsx`) | Sélecteur des 5 actions par leur nom, en-tête, onglet **Graphique** (périodes 1J, 1S, 1M, 3M, 6M, 1A, indicateurs à cocher, conseil, prévision, dividende) et onglet **Infos** (actualités notées, ratios, poids des piliers) |
 | **Historique** (`HistoryPage.jsx`) | Bilan, courbe de valeur (opérations d'un même jour regroupées sous un seul repère), journal paginé avec le conseil donné à ce moment |
 | **Profil** (`ProfilePage.jsx`) | Choix du profil de risque, thème, déconnexion |
@@ -378,11 +378,11 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 
 ### 7.1 Simuler puis enregistrer une opération (le seul chemin qui écrit)
 
-1. Dans le simulateur, le client choisit **Achat** ou **Vente**, coche une ou plusieurs actions et saisit **un montant pour chacune**. Le navigateur refuse un montant vide ou nul ; en vente, il bloque un montant supérieur à ce que le client possède.
+1. Sur la page Acheter / vendre, le client choisit **Achat** ou **Vente**, l'unité (**montant en euros** ou **nombre d'actions**), coche une ou plusieurs actions et saisit une valeur pour chacune. Le navigateur refuse une valeur vide ou nulle ; en vente, il bloque plus que ce que le client possède ; à l'achat, il bloque une position qui dépasserait la limite du profil (Prudent 10 %, Équilibré 20 % du capital par action ; Dynamique libre avec un avertissement au-delà de 35 %). L'API refait les mêmes contrôles, à la simulation et à l'enregistrement.
 2. **« Simuler »** → `POST /api/simulate`. L'API relit les conseils, les cours, le cash et les positions, puis calcule pour chaque ligne le nombre d'actions entier, le reste, le verdict et les raisons. **Rien n'est enregistré.** Si le total dépasse le cash, les dernières lignes sont refusées avec leur raison.
 3. **« Valider l'achat »** (désactivé si l'opération est refusée) ouvre la fenêtre de confirmation avec le récapitulatif et le cash après l'opération.
 4. **« Valider »** → `POST /api/transactions`. L'API refuse si le conseil a plus de 5 minutes ou si le cours a changé ; sinon elle appelle **une seule fois** la fonction SQL `executer_transaction`, qui revérifie tout et écrit d'un bloc. Le conseil du moment (note, raisons, graine du hasard) est enregistré avec l'opération.
-5. Succès : message, données rechargées ; on reste sur le simulateur tant qu'il reste des actions à valider, sinon retour au tableau de bord.
+5. Succès : message, données rechargées ; on reste sur la page tant qu'il reste des actions à valider, sinon retour au tableau de bord.
 
 ### 7.2 La première connexion, le profil et la déconnexion
 
