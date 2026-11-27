@@ -13,8 +13,9 @@ import { STOCKS } from '../lib/stocks'
 
 // Acheter / vendre (/ordres, ex-« Simulateur », D-26) — EF-02, RG-02, RG-03, RG-05, maquettes 03 et 04.
 // Seul chemin d'écriture : Voir le conseil → Valider → ConfirmDialog → POST /api/transactions → tableau de bord.
-// Saisie au choix en euros ou en nombre d'actions ; à l'achat, la part du capital sur une même action
-// est limitée par le profil (Prudent 10 %, Équilibré 20 %, Dynamique libre avec avertissement).
+// Saisie au choix en euros ou en nombre d'actions ; à l'achat, un avertissement s'affiche si la part du
+// capital sur une même action dépasse le seuil du profil (Prudent 10 %, Équilibré 20 %, Dynamique 35 %).
+// Rien n'est bloqué : le client reste seul décideur (D-27).
 
 /** « 20 000,50 » → 20000.5 ; NaN si la saisie n'est pas un nombre. */
 function parseAmount(text) {
@@ -64,7 +65,7 @@ export default function SimulatorPage() {
   }
 
 
-  // Actions détenues et cours : position affichée, ventes trop grandes et limite du profil (D-19, D-26).
+  // Actions détenues et cours : position affichée, ventes trop grandes (D-19), part du capital (D-27).
   const holdings = Object.fromEntries((data?.actions || []).map((a) => [a.ticker, { detenues: a.detenues || 0, cours: a.cours }]))
   /** Changer d'unité convertit ce qui est déjà saisi : 10 000 € → 127 actions, 50 actions → 9 535 €. */
   const changeUnit = (value) => {
@@ -99,24 +100,16 @@ export default function SimulatorPage() {
     selected.flatMap((ticker) => {
       const held = holdings[ticker]
       if (!held) return []
+      if (operation !== 'VENTE') return []
       const value = lineValue(ticker)
-      if (operation === 'VENTE') {
-        if (!held.detenues) return [[ticker, `Vous ne détenez aucune action ${nameOf(ticker)}`]]
-        const tooMany = unit === 'eur' ? value > held.detenues * held.cours + 0.005 : parsed(ticker) > held.detenues
-        return tooMany ? [[ticker, `Vous ne détenez que ${integer(held.detenues)} actions (≈ ${eur(held.detenues * held.cours)})`]] : []
-      }
-      const limit = profil?.part_max_action_pct
-      if (!limit || !capital || !(value > 0)) return []
-      const heldValue = held.detenues * held.cours
-      if ((heldValue + value) / capital * 100 <= limit + 1e-9) return []
-      const room = Math.max(0, Math.floor((capital * limit / 100 - heldValue) * 100) / 100)
-      return [[ticker, `Profil ${profil.nom} : ${limit} % du capital au plus par action, soit encore ${eur(room)} sur ${nameOf(ticker)}`]]
+      if (!held.detenues) return [[ticker, `Vous ne détenez aucune action ${nameOf(ticker)}`]]
+      const tooMany = unit === 'eur' ? value > held.detenues * held.cours + 0.005 : parsed(ticker) > held.detenues
+      return tooMany ? [[ticker, `Vous ne détenez que ${integer(held.detenues)} actions (≈ ${eur(held.detenues * held.cours)})`]] : []
     }),
   )
   const blocked = Object.keys(lineErrors).length > 0
-  const blockedMessage = operation === 'VENTE'
-    ? "Vous ne pouvez pas vendre plus d'actions que vous n'en possédez : corrigez les lignes en rouge."
-    : `Votre profil ${profil?.nom || ''} limite la part du capital placée sur une même action : corrigez les lignes en rouge.`
+  const blockedMessage = "Vous ne pouvez pas vendre plus d'actions que vous n'en possédez : corrigez les lignes en rouge."
+  const threshold = profil?.seuil_exposition_pct ?? 35
 
   // Aide sous chaque ligne : conversion euros ↔ actions et part du capital après l'achat.
   const hints = Object.fromEntries(
@@ -129,7 +122,7 @@ export default function SimulatorPage() {
       if (operation === 'ACHAT' && capital) {
         const after = (held.detenues * held.cours + value) / capital * 100
         parts.push(`${pctPlain(after)} de votre capital sur cette action`)
-        warn = !profil?.part_max_action_pct && after > (profil?.exposition_avertissement_pct ?? 35)
+        warn = after > threshold
       }
       return [[ticker, { text: parts.join(' · '), warn }]]
     }),

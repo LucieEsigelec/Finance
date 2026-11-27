@@ -44,7 +44,7 @@ class ProfileRequest(BaseModel):
 def _profiles() -> list[dict[str, Any]]:
     return [
         {"id": key, "nom": p["nom"], "seuil_achat": p["achat"], "seuil_vente": p["vente"], "description": p["description"],
-         "part_max_action_pct": p.get("part_max_action_pct")}
+         "seuil_exposition_pct": p["seuil_exposition_pct"]}
         for key, p in config.PROFILS_RISQUE.items()
     ]
 

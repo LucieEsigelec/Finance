@@ -467,8 +467,8 @@ def test_profile_lists_the_three_profiles_and_defaults(api):
     assert [p["id"] for p in body["profils"]] == ["prudent", "equilibre", "dynamique"]
     assert [(p["seuil_achat"], p["seuil_vente"]) for p in body["profils"]] == [(60, 40), (55, 45), (50, 40)]
     assert body["profil"] == {"id": None, "nom": "Par défaut", "seuil_achat": 60.0, "seuil_vente": 40.0, "a_choisir": True,
-                              "part_max_action_pct": None, "exposition_avertissement_pct": 35.0}
-    assert [p["part_max_action_pct"] for p in body["profils"]] == [10.0, 20.0, None]  # D-26
+                              "seuil_exposition_pct": 35.0}
+    assert [p["seuil_exposition_pct"] for p in body["profils"]] == [10.0, 20.0, 35.0]  # D-27
     assert body["enregistrable"] is True and set(body["notes"]) == set(config.TICKERS)
 
 
@@ -568,34 +568,34 @@ def test_d26_sell_more_shares_than_held_is_refused(api, repo):
     assert simulate_lines(api, [{"ticker": "DSY.PA", "quantite": 10}], "VENTE")[0]["quantite_entiere"] == 10
 
 
-def test_d26_prudent_profile_blocks_more_than_10_pct_on_one_stock(api, repo):
+def test_d27_prudent_profile_warns_but_never_blocks(api, repo):
     api.put("/api/profil", json={"profil": "prudent"})
     over = simulate_lines(api, [{"ticker": "AI.PA", "montant_eur": 60000}])[0]  # 12 % de 500 000 €
-    assert over["verdict"] == "REFUSE" and "10 %" in over["motif_refus"] and over["quantite_entiere"] == 0
+    assert over["verdict"] != "REFUSE" and over["quantite_entiere"] > 0
+    assert "10 % conseillés pour un profil Prudent" in over["exposition"]["avertissement"]
     ok = simulate_lines(api, [{"ticker": "AI.PA", "montant_eur": 45000}])[0]
-    assert ok["verdict"] != "REFUSE" and ok["exposition"]["apres_pct"] <= 10
-    # La position déjà détenue compte : on ne contourne pas la limite en achetant en deux fois.
+    assert ok["exposition"]["avertissement"] is None and ok["exposition"]["seuil_pct"] == 10.0
+    # La position déjà détenue compte dans la part du capital.
     ai = repo.action_by_ticker("AI.PA")
     repo.execute_transaction(repo.portfolio["id"], ai["id"], "ACHAT", int(45000 / ai["dernier_cours"]), {})
     again = simulate_lines(api, [{"ticker": "AI.PA", "montant_eur": 10000}])[0]
-    assert again["verdict"] == "REFUSE" and "déjà" in again["motif_refus"]
+    assert again["exposition"]["actuelle_pct"] > 8 and again["exposition"]["avertissement"]
 
 
-def test_d26_limit_enforced_when_recording(api, repo):
+def test_d27_large_purchase_is_recorded(api, repo):
     api.put("/api/profil", json={"profil": "equilibre"})
     ai = repo.action_by_ticker("AI.PA")
-    quantity = int(Decimal(150000) / ai["dernier_cours"])  # 30 % > 20 %
+    quantity = int(Decimal(150000) / ai["dernier_cours"])  # 30 % > 20 % : avertissement, pas de refus
     response = api.post("/api/transactions", json={
         "ticker": "AI.PA", "operation": "ACHAT", "quantite": quantity,
         "cours_simule": str(ai["dernier_cours"]), "date_conseil": NOW.isoformat()})
-    assert response.status_code == 400 and "20 %" in response.json()["detail"]
-    assert repo.get_transactions(repo.portfolio["id"]) == []
+    assert response.status_code == 200, response.text
 
 
-def test_d26_dynamic_profile_is_free_but_warned(api):
+def test_d27_dynamic_profile_warned_above_35_pct(api):
     api.put("/api/profil", json={"profil": "dynamique"})
     result = simulate_lines(api, [{"ticker": "AI.PA", "montant_eur": 200000}])[0]  # 40 %
     assert result["verdict"] != "REFUSE"
-    assert result["exposition"]["max_pct"] is None and "40" in result["exposition"]["avertissement"]
+    assert result["exposition"]["seuil_pct"] == 35.0 and "40" in result["exposition"]["avertissement"]
     small = simulate_lines(api, [{"ticker": "AI.PA", "montant_eur": 20000}])[0]
     assert small["exposition"]["avertissement"] is None
