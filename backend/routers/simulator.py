@@ -91,6 +91,8 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
                 "alerte_risque_rg01": state.niveau_alerte == ATTEINT,
                 "niveau_alerte": state.niveau_alerte,
                 "raisons": raisons,
+                # Lecture détaillée du graphique (D-24), calculée à l'actualisation ; None avant
+                "analyse_graphique": (details.get("analyse_graphique") or {}).get("lecture"),
                 "cash_apres_operation": money(available),
                 "detenues": state.held.get(ticker, 0),
             }

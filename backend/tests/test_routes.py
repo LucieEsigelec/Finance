@@ -525,3 +525,12 @@ def test_logout_clears_name_and_profile_but_keeps_the_portfolio(api, repo):
     assert repo.portfolio["profil_risque"] is None and repo.portfolio["nom_client"] is None
     assert repo.portfolio["cash_disponible"] == cash and len(repo.transactions) == 1
     assert api.get("/api/dashboard").json()["profil"]["a_choisir"] is True
+
+
+def test_d24_chart_analysis_on_stock_page_and_simulator(api):
+    analyse = api.get("/api/stocks/DSY.PA").json()["graphique"]["analyse"]
+    assert analyse["lecture"] and len(analyse["moyennes"]) == 3
+    assert all(s["niveau"] < analyse["cours"] for s in analyse["supports"])
+    assert all(r["niveau"] > analyse["cours"] for r in analyse["resistances"])
+    result = simulate(api)["resultats"][0]
+    assert result["analyse_graphique"] and result["raisons"]  # raisons inchangées (2 à 4)
