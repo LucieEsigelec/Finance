@@ -35,6 +35,7 @@ uv pip install -r requirements.txt
 python -m uvicorn main:app --reload --port 8000
 python -m pytest
 python -m tools.check_supabase       # connexion à la base, lecture seule
+python -m tools.reset_portfolio      # remet le portefeuille à 500 000 € sans opération (confirmation RESET)
 
 # Frontend (depuis frontend/)
 npm install
@@ -117,7 +118,7 @@ backend\
 ├── routers\  dashboard.py · simulator.py · transactions.py (+ historique) · stocks.py (+ refresh) · deps.py
 ├── services\ info_scoring.py · technical_scoring.py · ratio_scoring.py · randomness_service.py · decision_engine.py
 │             sentiment.py · market_data.py · refresh_service.py · portfolio_service.py · common.py
-├── tools\    refresh.py · stress_test.py · seed.py · check_supabase.py
+├── tools\    refresh.py · stress_test.py · seed.py · check_supabase.py · reset_portfolio.py (D-23)
 └── tests\
 frontend\
 └── src\

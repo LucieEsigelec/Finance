@@ -258,6 +258,18 @@ class SupabaseRepository:
             write=True,
         )
 
+    def reset_investments(self, portfolio_id: str, capital: Decimal, monday: date) -> int:
+        """Outil de test (D-23) : supprime les opérations DE CE portefeuille (WHERE portefeuille_id)
+        et remet le cash et la référence de la semaine au capital. Renvoie le nombre d'opérations
+        supprimées. Deux appels : en cas de coupure entre les deux, relancer l'outil suffit."""
+        deleted = self._run(
+            self.client.table("transactions").delete().eq("portefeuille_id", portfolio_id), write=True
+        ).data
+        self._run(self.client.table("portefeuille").update({
+            "cash_disponible": str(capital), "val_semaine_prec": str(capital), "date_ref_semaine": monday.isoformat(),
+        }).eq("id", portfolio_id), write=True)
+        return len(deleted or [])
+
     def get_transactions(self, portfolio_id: str) -> list[dict[str, Any]]:
         rows = self._all(
             self.client.table("transactions").select("*, actions(ticker, nom)")

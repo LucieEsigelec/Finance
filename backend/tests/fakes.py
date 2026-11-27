@@ -186,6 +186,13 @@ class FakeRepository:
         self.portfolio["profil_risque"] = None
         self.portfolio["nom_client"] = None
 
+    def reset_investments(self, portfolio_id, capital, monday):
+        count = len(self.transactions)
+        self.transactions = []
+        self.portfolio.update(cash_disponible=Decimal(str(capital)), val_semaine_prec=Decimal(str(capital)),
+                              date_ref_semaine=monday)
+        return count
+
     def get_transactions(self, portfolio_id):
         return [dict(t) for t in sorted(self.transactions, key=lambda t: t["date_execution"])]
 

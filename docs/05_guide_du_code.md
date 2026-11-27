@@ -299,6 +299,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 | `refresh` | Lance une actualisation complète et affiche le compte rendu | Oui |
 | `rescore_news` | Renote avec Claude les articles des 7 derniers jours | Oui (notes des articles) |
 | `stress_test` | Fait baisser tous les cours en mémoire pour vérifier que l'alerte passe au rouge à −10 % (recette REC-4) | Non |
+| `reset_portfolio` | Après des tests : supprime toutes les opérations et remet le cash à 500 000 € (affiche le résumé et demande de taper RESET ; `--profil` efface aussi nom et profil) | **Oui, définitif** (opérations, cash) |
 
 ---
 
