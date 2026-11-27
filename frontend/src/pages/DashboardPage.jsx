@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import Disclaimer from '../components/layout/Disclaimer'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import RiskIndicator from '../components/RiskIndicator'
@@ -56,8 +55,6 @@ export default function DashboardPage() {
         </div>
         <StocksTable actions={data.actions} />
       </section>
-
-      <Disclaimer />
     </div>
   )
 }

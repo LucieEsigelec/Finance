@@ -74,7 +74,7 @@ def test_rec1_five_stocks_have_decision_forecast_dividend(api):
         assert stock["conseil"] in {"ACHAT", "VENTE", "RIEN"}  # RG-02
         assert set(stock["prevision_semaine_pct"]) == {"defavorable", "central", "favorable"}
         assert stock["dividende_par_action"] > 0
-    assert "ne garantit pas" in body["mention"]  # ENF-03
+    assert "ne garantissent pas" in body["mention"]  # ENF-03, D-25
 
 
 def test_rec2_simulate_then_record_round_trip(api, repo):

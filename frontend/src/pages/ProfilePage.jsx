@@ -1,7 +1,6 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import Disclaimer from '../components/layout/Disclaimer'
 import LogoutDialog from '../components/LogoutDialog'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
@@ -151,8 +150,6 @@ export default function ProfilePage() {
         <Button onClick={() => setLogout(true)}>Se déconnecter</Button>
       </section>
       {logout && <LogoutDialog onClose={() => setLogout(false)} />}
-
-      <Disclaimer />
     </div>
   )
 }

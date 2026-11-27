@@ -203,7 +203,7 @@ Toutes les valeurs numériques viennent de `config.py`, jamais en dur dans les s
 - **Toute écriture de transaction passe par `executer_transaction()`** (une seule requête `rpc`, code en SPEC Annexe A.3) : jamais d'insertion + mise à jour du cash en deux appels séparés.
 
 ### Honnêteté (ENF-03)
-- Mention « outil d'aide à la décision, ne garantit pas les performances futures » sur chaque écran qui affiche un conseil, une prévision ou un dividende.
+- Avertissement « Les conseils sont une aide à la décision, ils ne garantissent pas le succès : vous restez seul décideur. » en pied de page de **toutes** les pages (`AppLayout`, D-25 ; remplace la mention « outil d'aide à la décision… »).
 - L'objectif de ~10 % par semaine est **visé**, jamais promis.
 - Donnée manquante : l'interface le dit, le calcul ne l'invente pas.
 

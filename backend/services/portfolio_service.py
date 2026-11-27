@@ -26,7 +26,7 @@ from services.decision_engine import (
     weekly_variation_pct,
 )
 
-MENTION = "Outil d'aide à la décision : il ne garantit pas les performances futures."
+MENTION = "Les conseils sont une aide à la décision, ils ne garantissent pas le succès : vous restez seul décideur."  # ENF-03, D-25
 
 
 @dataclass
