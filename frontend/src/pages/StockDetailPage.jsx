@@ -7,6 +7,7 @@ import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import PriceChart from '../components/stock/PriceChart'
 import {
+  ChartAnalysisCard,
   DividendSimulator,
   ForecastCard,
   NewsList,
@@ -23,7 +24,7 @@ import { COLOR_BY_TICKER, STOCKS } from '../lib/stocks'
 
 // 1J et 1S : bougies de 5 min et de 30 min (cours intrajournaliers, D-12) ; au-delà, bougies d'un jour.
 const PERIODS = [['1J', 'jour'], ['1S', 'semaine'], ['1M', 31], ['3M', 92], ['6M', 183], ['1A', 366]]
-const INDICATORS = [['mm20', 'MM20', 'chart-ma20'], ['mm50', 'MM50', 'chart-ma50'], ['mm200', 'MM200', 'chart-ma200'], ['bollinger', 'Bollinger', 'brand']]
+const INDICATORS = [['mm20', 'MM20', 'chart-ma20'], ['mm50', 'MM50', 'chart-ma50'], ['mm200', 'MM200', 'chart-ma200'], ['bollinger', 'Bollinger', 'brand'], ['sr', 'Supports / résistances', 'ink-muted']]
 
 export default function StockDetailPage() {
   const { ticker = 'DSY.PA' } = useParams()
@@ -31,7 +32,7 @@ export default function StockDetailPage() {
   const [state, setState] = useState({ key: null, data: null, error: null })
   const [tab, setTab] = useState('graphique')
   const [period, setPeriod] = useState('3M')
-  const [show, setShow] = useState({ mm20: true, mm50: true, mm200: true, bollinger: true })
+  const [show, setShow] = useState({ mm20: true, mm50: true, mm200: true, bollinger: true, sr: true })
   const [attempt, setAttempt] = useState(0)
 
   const requestKey = `${code}#${attempt}`
@@ -121,6 +122,7 @@ export default function StockDetailPage() {
 
       {tab === 'graphique' ? (
         <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="flex min-w-0 flex-col gap-6">
           <section className="card p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex gap-2" role="group" aria-label="Période">
@@ -148,7 +150,7 @@ export default function StockDetailPage() {
             </div>
             {series.length ? (
               <>
-                <PriceChart series={series} show={show} rsiLabel={rsiLabel} macdLabel={graphique.macd.libelle} intraday={intraday} />
+                <PriceChart series={series} show={show} rsiLabel={rsiLabel} macdLabel={graphique.macd.libelle} intraday={intraday} levels={graphique.analyse} />
                 {intraday && (
                   <p className="mt-2 mb-0 text-[13px] text-muted">
                     {period === '1J' ? 'Dernière séance, bougies de 5 minutes' : '5 dernières séances, bougies de 30 minutes'}, heure de Paris. Indicateurs calculés sur ces bougies ; le conseil, lui, repose sur les cours de clôture.
@@ -161,6 +163,8 @@ export default function StockDetailPage() {
               </p>
             )}
           </section>
+          <ChartAnalysisCard analyse={graphique.analyse} />
+          </div>
           <div className="flex flex-col gap-6">
             <RecommendationCard conseil={data.conseil} />
             <ForecastCard prevision={data.prevision} />

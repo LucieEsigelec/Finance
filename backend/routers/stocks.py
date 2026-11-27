@@ -31,6 +31,7 @@ from routers import refresh_control
 from routers.dashboard import stock_row
 from routers.deps import check_ticker, get_collector, get_news_analyzer, get_now, get_repo, money
 from services import market_data
+from services.chart_analysis import analyze_chart
 from services.decision_engine import forecast_euros
 from services.info_scoring import article_weight
 from services.portfolio_service import MENTION, load_state
@@ -224,6 +225,8 @@ def stock_detail(ticker: str, repo=Depends(get_repo), now: datetime = Depends(ge
             "intraday": intraday,
             "rsi": {"valeur": _num(rsi, 0), "zone": rsi_zone(rsi)},
             "macd": {"libelle": macd_label((tech.get("signaux") or {}).get("macd"))},
+            # Lecture détaillée (MM, croisements, supports / résistances), D-24 : explication seule
+            "analyse": analyze_chart(history, now.date()) if not history.empty else None,
         },
         "conseil": {
             "decision": row["conseil"],

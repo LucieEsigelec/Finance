@@ -43,6 +43,7 @@ from services.info_scoring import InfoScoringService
 from services.news_nlp import NlpUnavailable, apply_analysis
 from services.randomness_service import RandomnessService
 from services.ratio_scoring import RatioScoringService
+from services.chart_analysis import analyze_chart
 from services.technical_scoring import TechnicalScoringService
 
 log = logging.getLogger(__name__)
@@ -136,6 +137,7 @@ def score_stock(
             "impact_points": round(info.impact_points, 2),
         },
         "tech": {"score": round(tech.score, 2), "signaux": tech.signaux, "details": tech.details},
+        "analyse_graphique": analyze_chart(history, today),  # explication seule (D-24)
         "ratios": {
             "score": round(ratio.score, 2),
             "criteres": ratio.criteres,

@@ -236,6 +236,69 @@ function TradeLink({ entete }) {
   )
 }
 
+/**
+ * Analyse graphique détaillée (D-24) : moyennes mobiles, croisements, supports et résistances.
+ * Explication seule : ces éléments n'entrent pas dans la note du conseil (SPEC §3 inchangée).
+ */
+export function ChartAnalysisCard({ analyse }) {
+  if (!analyse) return null
+  const levels = [
+    ...[...analyse.resistances].reverse().map((lv) => ({ ...lv, kind: 'Résistance' })),
+    { niveau: analyse.cours, kind: 'Cours actuel', current: true },
+    ...analyse.supports.map((lv) => ({ ...lv, kind: 'Support' })),
+  ]
+  return (
+    <section className="card flex flex-col gap-4 p-4 sm:p-6" aria-labelledby="analyse-graphique-titre">
+      <div>
+        <h2 id="analyse-graphique-titre" className="m-0">Analyse graphique</h2>
+        <p className="mt-1 mb-0 text-[13px] text-muted">
+          Lecture des moyennes mobiles et des niveaux clés des 6 derniers mois. Explication seule : elle n'entre pas dans la note du conseil.
+        </p>
+      </div>
+      <ul className="m-0 flex list-disc flex-col gap-1.5 pl-5">
+        {analyse.lecture.map((sentence) => <li key={sentence}>{sentence}</li>)}
+      </ul>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <div className="label-caps mb-2">Moyennes mobiles</div>
+          <table className="w-full border-collapse text-[14px]">
+            <thead>
+              <tr className="text-left text-[13px] text-muted">
+                <th className="pb-1 font-medium">Moyenne</th>
+                <th className="pb-1 text-right font-medium">Niveau</th>
+                <th className="pb-1 text-right font-medium">Cours par rapport</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analyse.moyennes.map((mm) => (
+                <tr key={mm.nom} className="border-t border-line">
+                  <td className="py-1.5">{mm.libelle}</td>
+                  <td className="num py-1.5 text-right">{eur(mm.valeur)}</td>
+                  <td className="num py-1.5 text-right">{mm.ecart_pct >= 0 ? 'au-dessus ' : 'en dessous '}{pct(mm.ecart_pct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div className="label-caps mb-2">Niveaux clés</div>
+          <ul className="m-0 flex list-none flex-col p-0 text-[14px]">
+            {levels.map((lv) => (
+              <li key={`${lv.kind}-${lv.niveau}`} className={`flex items-baseline justify-between gap-3 border-t border-line py-1.5 ${lv.current ? 'font-semibold text-brand' : ''}`}>
+                <span>
+                  {lv.kind}
+                  {!lv.current && <span className="text-[13px] text-muted">{lv.extreme ? ' · extrême 6 mois' : ` · ${lv.touches} contacts`}</span>}
+                </span>
+                <span className="num">{eur(lv.niveau)}{!lv.current && <span className="text-muted"> ({pct(lv.ecart_pct)})</span>}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function StockHeader({ entete, color }) {
   return (
     <section className="card flex flex-wrap items-center gap-x-10 gap-y-4 p-4 sm:p-6">

@@ -212,6 +212,17 @@ Calculée par nous, avec la bibliothèque `ta`, à partir des cours de clôture 
 
 Note = moyenne des 5 signaux pondérée par leur importance. **Aucun cours postérieur à la date du calcul n'est utilisé** (un test le vérifie avec de faux cours « futurs »).
 
+#### Lecture détaillée du graphique — `chart_analysis.py` (explication, hors note)
+
+En plus de la note, l'application **explique** le graphique en phrases simples (D-24). Rien ici ne change la note ni le conseil.
+
+- **Moyennes mobiles** : le cours est-il au-dessus ou en dessous des moyennes 20, 50 et 200 jours, et de combien ? Les moyennes sont-elles « rangées » (20 > 50 > 200 = hausse installée) ?
+- **Croisements récents** (sur un mois) : la moyenne 50 jours passe au-dessus de la 200 jours (« croisement doré ») ou en dessous (« croisement de la mort ») ; idem 20 / 50 jours pour le court terme.
+- **Supports et résistances** : sur 6 mois, on repère les sommets et les creux (plus haut / plus bas sur ±5 séances), on regroupe ceux qui sont à moins de 1,5 % les uns des autres ; un niveau touché au moins 2 fois compte. Sous le cours = support, au-dessus = résistance. À défaut, le plus bas / plus haut de 6 mois.
+- **Où ça s'affiche** : carte « Analyse graphique » et lignes pointillées sur le graphique de la fiche action (calcul à la lecture) ; bloc dépliable sous chaque conseil du simulateur (calcul à l'actualisation, rangé dans `details_piliers`).
+
+Les réglages (6 mois, ±5 séances, 1,5 %, 2 contacts) sont dans `config.py` (`SR_…`).
+
 #### Informations — `info_scoring.py` (40 %, pilier majoritaire)
 
 1. Chaque article a sa note d'impact (paragraphe 5.3).
@@ -333,7 +344,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 
 ### 6.5 Les composants
 
-**Les 8 composants de la charte** (`components/ui/`) : `Button`, `DecisionBadge` (▲ ACHAT…), `KpiCard` (carte chiffrée), `AlertBanner` (bandeau de perte), `AmountInput` (champ en euros), `StockCheckbox` (case d'une action avec sa pastille de couleur), `ForecastBar` (les 3 scénarios), `AdviceCard` (résultat d'une simulation, dans un ordre fixe).
+**Les 8 composants de la charte** (`components/ui/`) : `Button`, `DecisionBadge` (▲ ACHAT…), `KpiCard` (carte chiffrée), `AlertBanner` (bandeau de perte), `AmountInput` (champ en euros), `StockCheckbox` (case d'une action avec sa pastille de couleur), `ForecastBar` (les 3 scénarios), `AdviceCard` (résultat d'une simulation, dans un ordre fixe, avec l'analyse graphique dépliable).
 
 **Les autres** :
 

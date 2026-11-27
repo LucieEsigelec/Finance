@@ -31,7 +31,7 @@ function baseOptions(height) {
 const timeOf = (r) => r.time ?? r.date
 const points = (rows, key) => rows.map((r) => (r[key] === null ? { time: timeOf(r) } : { time: timeOf(r), value: r[key] }))
 
-export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday = false }) {
+export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday = false, levels = null }) {
   const mainRef = useRef(null)
   const rsiRef = useRef(null)
   const macdRef = useRef(null)
@@ -59,10 +59,17 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday
       main.addSeries(AreaSeries, { lineColor: brand, lineWidth: 1, topColor: card, bottomColor: card, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
         .setData(points(series, 'boll_bas'))
     }
-    main.addSeries(CandlestickSeries, {
+    const candles = main.addSeries(CandlestickSeries, {
       upColor: cssVar('buy'), downColor: cssVar('sell'), borderVisible: false,
       wickUpColor: cssVar('buy'), wickDownColor: cssVar('sell'),
-    }).setData(series.map((r) => ({ time: timeOf(r), open: r.open, high: r.high, low: r.low, close: r.close })))
+    })
+    candles.setData(series.map((r) => ({ time: timeOf(r), open: r.open, high: r.high, low: r.low, close: r.close })))
+    if (show.sr && levels) {
+      // Supports et résistances (D-24) : lignes pointillées horizontales avec leur nom sur l'axe.
+      const muted = cssVar('ink-muted')
+      levels.supports.forEach((lv) => candles.createPriceLine({ price: lv.niveau, color: muted, lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: 'Support' }))
+      levels.resistances.forEach((lv) => candles.createPriceLine({ price: lv.niveau, color: muted, lineStyle: LineStyle.Dotted, lineWidth: 1, axisLabelVisible: true, title: 'Résistance' }))
+    }
     const lines = [['mm20', 'chart-ma20'], ['mm50', 'chart-ma50'], ['mm200', 'chart-ma200']]
     lines.filter(([key]) => show[key]).forEach(([key, color]) => {
       main.addSeries(LineSeries, { color: cssVar(color), lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
@@ -98,7 +105,7 @@ export default function PriceChart({ series, show, rsiLabel, macdLabel, intraday
       handlers.forEach(([chart, handler]) => chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler))
       charts.forEach((chart) => chart.remove())
     }
-  }, [series, show, intraday, theme])
+  }, [series, show, intraday, theme, levels])
 
   return (
     <div className="flex flex-col gap-0">
