@@ -2,7 +2,6 @@ import { ArrowLeft } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import Disclaimer from '../components/layout/Disclaimer'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import PriceChart from '../components/stock/PriceChart'
@@ -176,8 +175,6 @@ export default function StockDetailPage() {
           </div>
         </div>
       )}
-
-      <Disclaimer />
     </div>
   )
 }

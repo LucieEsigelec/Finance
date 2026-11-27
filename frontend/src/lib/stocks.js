@@ -9,7 +9,7 @@ export const STOCKS = [
 
 export const COLOR_BY_TICKER = Object.fromEntries(STOCKS.map((s) => [s.ticker, s.color]))
 
-export const MENTION = "Outil d'aide à la décision : il ne garantit pas les performances futures."
+export const MENTION = "Les conseils sont une aide à la décision, ils ne garantissent pas le succès : vous restez seul décideur."
 
 /** Lit la valeur d'une variable CSS (pour les bibliothèques de graphiques qui n'acceptent pas var()). */
 export function cssVar(name) {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-import Disclaimer from '../components/layout/Disclaimer'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import Button from '../components/ui/Button'
@@ -231,8 +230,6 @@ export default function HistoryPage() {
           </div>
         </div>
       </section>
-
-      <Disclaimer />
     </div>
   )
 }

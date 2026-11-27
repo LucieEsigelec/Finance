@@ -321,7 +321,7 @@ Une source en panne n'arrête pas l'actualisation : l'erreur est notée dans le 
 - **Aucune couleur en dur** : toutes viennent de `styles/tokens.css` (copie de la charte), branchées sur Tailwind dans `index.css` (`bg-buy-soft`, `text-sell`…). En thème sombre, ce sont les mêmes noms avec d'autres valeurs.
 - **Formats français** (`lib/format.js`) : `49 972,80 €`, `+3,2 %`, `−1,8 %` avec le vrai signe moins, `−0,01 %` pour les petites variations, `25 nov. 2026, 18:02`.
 - **Un conseil a toujours son signe et son mot** : ▲ ACHAT, ▼ VENTE, ■ RIEN (la couleur seule ne suffit pas pour les daltoniens).
-- **La mention « outil d'aide à la décision… ne garantit pas les performances futures »** (`Disclaimer`) est sur chaque écran qui montre un conseil, une prévision ou un dividende (ENF-03).
+- **L'avertissement « Les conseils sont une aide à la décision, ils ne garantissent pas le succès : vous restez seul décideur. »** est dans le pied de page (`AppLayout`), donc en bas de **toutes** les pages (ENF-03, D-25). L'API renvoie le même texte dans le champ `mention`.
 
 ### 6.4 Les données partagées (`context/`)
 

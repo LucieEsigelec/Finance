@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
-import Disclaimer from '../components/layout/Disclaimer'
 import SimulatorPanel from '../components/SimulatorPanel'
 import AdviceCard from '../components/ui/AdviceCard'
 import Button from '../components/ui/Button'
@@ -220,7 +219,6 @@ export default function SimulatorPage() {
               Le conseil est une aide : vous restez libre de valider ou non. Le nombre d'actions est arrondi à l'entier inférieur, le reste du montant reste en cash. Chaque action se valide séparément.
             </span>
           </div>
-          <Disclaimer />
         </section>
       </div>
 

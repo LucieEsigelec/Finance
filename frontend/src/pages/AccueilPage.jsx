@@ -1,6 +1,5 @@
 import { ArrowRight, History, LayoutGrid, Calculator } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import Disclaimer from '../components/layout/Disclaimer'
 import ErrorState from '../components/layout/ErrorState'
 import LoadingState from '../components/layout/LoadingState'
 import DecisionBadge from '../components/ui/DecisionBadge'
@@ -95,9 +94,8 @@ export default function AccueilPage() {
 
       <div className="flex flex-col gap-1">
         <p className="m-0 text-[13px] text-muted">
-          Vos objectifs : environ +10 % par semaine visés (jamais garantis) · perte maximale acceptée : −10 % par semaine. Les conseils sont une aide à la décision : vous restez seul décideur.
+          Vos objectifs : environ +10 % par semaine visés (jamais garantis) · perte maximale acceptée : −10 % par semaine.
         </p>
-        <Disclaimer />
       </div>
     </div>
   )
