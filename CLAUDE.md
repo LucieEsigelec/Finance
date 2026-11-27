@@ -155,13 +155,13 @@ Codes : `400` règle de gestion violée (cash insuffisant, vente > position, con
 |---|---|---|
 | `AccueilPage` | `/` | `01_accueil.png` |
 | `DashboardPage` | `/tableau-de-bord` | `02_tableau_de_bord.png`, `05_tableau_de_bord_alerte.png` |
-| `SimulatorPage` (+ `ConfirmDialog`) | `/simulateur` | `03_simulateur.png`, `04_confirmation.png` |
+| `SimulatorPage` (+ `ConfirmDialog`), onglet « Acheter / vendre » | `/ordres` (`/simulateur` redirige, D-26) | `03_simulateur.png`, `04_confirmation.png` |
 | `StockDetailPage` (onglets Graphique / Infos) | `/action/:ticker` | `06_fiche_action_graphique.png`, `07_fiche_action_infos.png` |
 | `HistoryPage` | `/historique` | `08_historique.png` |
 
-- `NavBar` sur toutes les pages : 5 onglets (Accueil, Tableau de bord, Simulateur, Actions, Historique), date des données, bouton « Actualiser les données ».
+- `NavBar` sur toutes les pages : 6 onglets (Accueil, Tableau de bord, Acheter / vendre, Actions, Historique, Profil), date des données, bouton « Actualiser les données ».
 - `AlertBanner` sous la NavBar, sur toutes les pages, dès que le niveau d'alerte n'est pas `AUCUN`.
-- **Seul chemin d'écriture** : Simulateur → Simuler → Valider → ConfirmDialog → `POST /api/transactions` → retour au tableau de bord. Les parcours détaillés sont dans [UI §5].
+- **Seul chemin d'écriture** : Acheter / vendre → Voir le conseil → Valider → ConfirmDialog → `POST /api/transactions` → retour au tableau de bord. Saisie en euros ou en nombre d'actions ; limite d'exposition par profil (D-26). Les parcours détaillés sont dans [UI §5].
 
 ### 3.5 Charte graphique `[CHARTE]`
 

@@ -8,16 +8,24 @@ import AdviceCard from '../components/ui/AdviceCard'
 import Button from '../components/ui/Button'
 import { useDashboard } from '../context/DashboardContext'
 import { useToast } from '../context/ToastContext'
-import { eur, formatDateTime, integer, pct, trendClass } from '../lib/format'
+import { eur, formatDateTime, integer, pct, pctPlain, trendClass } from '../lib/format'
 import { STOCKS } from '../lib/stocks'
 
-// Simulateur (/simulateur) — EF-02, RG-02, RG-03, RG-05, maquettes 03 et 04.
-// Seul chemin d'écriture : Simuler → Valider → ConfirmDialog → POST /api/transactions → tableau de bord.
+// Acheter / vendre (/ordres, ex-« Simulateur », D-26) — EF-02, RG-02, RG-03, RG-05, maquettes 03 et 04.
+// Seul chemin d'écriture : Voir le conseil → Valider → ConfirmDialog → POST /api/transactions → tableau de bord.
+// Saisie au choix en euros ou en nombre d'actions ; à l'achat, la part du capital sur une même action
+// est limitée par le profil (Prudent 10 %, Équilibré 20 %, Dynamique libre avec avertissement).
 
 /** « 20 000,50 » → 20000.5 ; NaN si la saisie n'est pas un nombre. */
 function parseAmount(text) {
   const cleaned = text.replace(/[\s  €]/g, '').replace(',', '.')
   return cleaned === '' ? NaN : Number(cleaned)
+}
+
+/** « 1 250 » → 1250 ; NaN si ce n'est pas un nombre entier d'actions. */
+function parseShares(text) {
+  const cleaned = text.replace(/[\s  ]/g, '')
+  return /^\d+$/.test(cleaned) ? Number(cleaned) : NaN
 }
 
 export default function SimulatorPage() {
@@ -31,6 +39,7 @@ export default function SimulatorPage() {
     return STOCKS.some((s) => s.ticker === ticker) ? [ticker] : []
   })
   const [operation, setOperation] = useState(() => (params.get('operation') === 'VENTE' ? 'VENTE' : 'ACHAT'))
+  const [unit, setUnit] = useState('eur') // 'eur' : montant ; 'actions' : nombre d'actions (D-26)
   const [amounts, setAmounts] = useState({})
   const [errors, setErrors] = useState({})
   const [simulation, setSimulation] = useState(null)
@@ -54,24 +63,77 @@ export default function SimulatorPage() {
     })
   }
 
-  const total = selected.reduce((sum, t) => sum + (parseAmount(amounts[t] || '') || 0), 0)
 
-  // Vente : actions détenues et cours, pour afficher la position et bloquer une vente trop grande (D-19).
+  // Actions détenues et cours : position affichée, ventes trop grandes et limite du profil (D-19, D-26).
   const holdings = Object.fromEntries((data?.actions || []).map((a) => [a.ticker, { detenues: a.detenues || 0, cours: a.cours }]))
-  const sellErrors = operation === 'VENTE'
-    ? Object.fromEntries(
-        selected.flatMap((ticker) => {
-          const held = holdings[ticker]
-          if (!held) return []
-          const name = STOCKS.find((s) => s.ticker === ticker)?.nom || ticker
-          if (!held.detenues) return [[ticker, `Vous ne détenez aucune action ${name}`]]
-          const max = held.detenues * held.cours
-          const amount = parseAmount(amounts[ticker] || '')
-          return amount > max + 0.005 ? [[ticker, `Vous ne détenez que ${integer(held.detenues)} actions (≈ ${eur(max)})`]] : []
+  /** Changer d'unité convertit ce qui est déjà saisi : 10 000 € → 127 actions, 50 actions → 9 535 €. */
+  const changeUnit = (value) => {
+    if (value === unit) return
+    setAmounts((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([ticker, text]) => {
+          const price = holdings[ticker]?.cours
+          const number = unit === 'eur' ? parseAmount(text || '') : parseShares(text || '')
+          if (!price || !(number > 0)) return [ticker, '']
+          return [ticker, value === 'actions' ? String(Math.floor(number / price)) : (Math.round(number * price * 100) / 100).toString().replace('.', ',')]
         }),
-      )
-    : {}
-  const blocked = Object.keys(sellErrors).length > 0
+      ),
+    )
+    setUnit(value)
+    setErrors({})
+  }
+
+  const parsed = (ticker) => (unit === 'eur' ? parseAmount(amounts[ticker] || '') : parseShares(amounts[ticker] || ''))
+  /** Valeur en euros d'une ligne (montant saisi, ou nombre d'actions × cours). */
+  const lineValue = (ticker) => {
+    const value = parsed(ticker)
+    if (!(value > 0)) return 0
+    return unit === 'eur' ? value : value * (holdings[ticker]?.cours || 0)
+  }
+  const total = selected.reduce((sum, t) => sum + lineValue(t), 0)
+  const nameOf = (ticker) => STOCKS.find((s) => s.ticker === ticker)?.nom || ticker
+  const profil = data?.profil
+  const capital = data?.capital_total
+
+  const lineErrors = Object.fromEntries(
+    selected.flatMap((ticker) => {
+      const held = holdings[ticker]
+      if (!held) return []
+      const value = lineValue(ticker)
+      if (operation === 'VENTE') {
+        if (!held.detenues) return [[ticker, `Vous ne détenez aucune action ${nameOf(ticker)}`]]
+        const tooMany = unit === 'eur' ? value > held.detenues * held.cours + 0.005 : parsed(ticker) > held.detenues
+        return tooMany ? [[ticker, `Vous ne détenez que ${integer(held.detenues)} actions (≈ ${eur(held.detenues * held.cours)})`]] : []
+      }
+      const limit = profil?.part_max_action_pct
+      if (!limit || !capital || !(value > 0)) return []
+      const heldValue = held.detenues * held.cours
+      if ((heldValue + value) / capital * 100 <= limit + 1e-9) return []
+      const room = Math.max(0, Math.floor((capital * limit / 100 - heldValue) * 100) / 100)
+      return [[ticker, `Profil ${profil.nom} : ${limit} % du capital au plus par action, soit encore ${eur(room)} sur ${nameOf(ticker)}`]]
+    }),
+  )
+  const blocked = Object.keys(lineErrors).length > 0
+  const blockedMessage = operation === 'VENTE'
+    ? "Vous ne pouvez pas vendre plus d'actions que vous n'en possédez : corrigez les lignes en rouge."
+    : `Votre profil ${profil?.nom || ''} limite la part du capital placée sur une même action : corrigez les lignes en rouge.`
+
+  // Aide sous chaque ligne : conversion euros ↔ actions et part du capital après l'achat.
+  const hints = Object.fromEntries(
+    selected.flatMap((ticker) => {
+      const held = holdings[ticker]
+      const value = lineValue(ticker)
+      if (!held || !(value > 0)) return []
+      const parts = [unit === 'eur' ? `≈ ${integer(Math.floor(value / held.cours))} actions` : `≈ ${eur(value)}`]
+      let warn = false
+      if (operation === 'ACHAT' && capital) {
+        const after = (held.detenues * held.cours + value) / capital * 100
+        parts.push(`${pctPlain(after)} de votre capital sur cette action`)
+        warn = !profil?.part_max_action_pct && after > (profil?.exposition_avertissement_pct ?? 35)
+      }
+      return [[ticker, { text: parts.join(' · '), warn }]]
+    }),
+  )
 
   async function onSimulate() {
     if (blocked) return
@@ -80,7 +142,9 @@ export default function SimulatorPage() {
       return
     }
     const invalid = Object.fromEntries(
-      selected.filter((t) => !(parseAmount(amounts[t] || '') > 0)).map((t) => [t, 'Saisissez un montant supérieur à 0']),
+      selected
+        .filter((t) => !(parsed(t) > 0))
+        .map((t) => [t, unit === 'eur' ? 'Saisissez un montant supérieur à 0' : "Saisissez un nombre entier d'actions"]),
     )
     if (Object.keys(invalid).length) {
       setErrors(invalid)
@@ -89,7 +153,7 @@ export default function SimulatorPage() {
     setErrors({})
     setLoading(true)
     try {
-      const lines = selected.map((t) => ({ ticker: t, montant_eur: parseAmount(amounts[t]) }))
+      const lines = selected.map((t) => (unit === 'eur' ? { ticker: t, montant_eur: parsed(t) } : { ticker: t, quantite: parsed(t) }))
       setSimulation(await api.simulate(lines, operation))
     } catch (error) {
       toast(error.message, 'error')
@@ -112,7 +176,7 @@ export default function SimulatorPage() {
       const recorded = toConfirm.ticker
       setToConfirm(null)
       await reload()
-      // D'autres opérations restent à valider : on reste sur le simulateur.
+      // D'autres opérations restent à valider : on reste sur la page.
       const remaining = simulation.resultats.filter(
         (r) => r.ticker !== recorded && r.verdict !== 'REFUSE' && r.quantite_entiere > 0 && !r.enregistre,
       )
@@ -141,9 +205,9 @@ export default function SimulatorPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1>Simulateur</h1>
+          <h1>Acheter ou vendre</h1>
           <p className="mt-1 mb-0 text-[13px] text-muted">
-            Choisissez une ou plusieurs actions, un montant et une opération : l'application vous donne son conseil avant que vous décidiez.
+            Choisissez une ou plusieurs actions, un montant ou un nombre d'actions : l'application vous donne son conseil avant que vous décidiez.
           </p>
         </div>
         {data && (
@@ -166,11 +230,15 @@ export default function SimulatorPage() {
           onToggle={toggle}
           operation={operation}
           onOperation={setOperation}
+          unit={unit}
+          onUnit={changeUnit}
           amounts={amounts}
           onAmount={changeAmount}
-          errors={{ ...sellErrors, ...Object.fromEntries(Object.entries(errors).filter(([, message]) => message)) }}
+          errors={{ ...lineErrors, ...Object.fromEntries(Object.entries(errors).filter(([, message]) => message)) }}
+          hints={hints}
           holdings={holdings}
           blocked={blocked}
+          blockedMessage={blockedMessage}
           total={total}
           cash={data?.cash_disponible}
           onSimulate={onSimulate}
@@ -181,12 +249,12 @@ export default function SimulatorPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2>Conseil pour votre opération</h2>
             {simulation && (
-              <span className="text-[13px] text-muted">Simulation du {formatDateTime(simulation.date_conseil)} · rien n'est encore enregistré</span>
+              <span className="text-[13px] text-muted">Conseil du {formatDateTime(simulation.date_conseil)} · rien n'est encore enregistré</span>
             )}
           </div>
           {!simulation && (
             <div className="card p-6 text-muted">
-              Cochez une action, saisissez un montant puis cliquez sur « Simuler » : le conseil et ses raisons s'afficheront ici.
+              Cochez une action, saisissez un montant ou un nombre d'actions puis cliquez sur « Voir le conseil » : le conseil et ses raisons s'afficheront ici.
             </div>
           )}
           {simulation?.avertissement && (
@@ -216,7 +284,7 @@ export default function SimulatorPage() {
           <div className="flex gap-3 rounded-md bg-sunken p-4 text-[13px] leading-[18px]">
             <Info className="mt-px size-4 flex-none text-brand" strokeWidth={1.75} aria-hidden="true" />
             <span>
-              Le conseil est une aide : vous restez libre de valider ou non. Le nombre d'actions est arrondi à l'entier inférieur, le reste du montant reste en cash. Chaque action se valide séparément.
+              Vous restez libre de valider ou non. Saisi en euros, le nombre d'actions est arrondi à l'entier inférieur et le reste du montant reste en cash. Chaque action se valide séparément.
             </span>
           </div>
         </section>

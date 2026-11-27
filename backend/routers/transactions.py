@@ -28,7 +28,7 @@ from db.repository import TransactionRefused
 from models.schemas import TransactionRequest
 from routers.deps import check_ticker, get_now, get_repo, money
 from services.decision_engine import ACHAT, alert_level, realized_gains, verdict, weekly_variation_pct
-from services.portfolio_service import MENTION, load_state
+from services.portfolio_service import MENTION, exposure_check, load_state
 from services.ratio_scoring import estimated_dividend
 
 router = APIRouter(prefix="/api", tags=["opérations"])
@@ -52,6 +52,11 @@ def record_transaction(
         raise HTTPException(400, "Le conseil a plus de 5 minutes : relancez la simulation.")
     if state.prices[request.ticker] != request.cours_simule.quantize(Decimal("0.01")):
         raise HTTPException(400, "Le cours a changé depuis la simulation : relancez la simulation.")
+
+    if request.operation == ACHAT:  # limite d'exposition du profil, revérifiée à l'enregistrement (D-26)
+        exposition = exposure_check(state, request.ticker, state.prices[request.ticker] * request.quantite)
+        if exposition["depasse"]:
+            raise HTTPException(400, exposition["message"])
 
     score = state.scores.get(request.ticker) or {}
     details = score.get("details_piliers", {})

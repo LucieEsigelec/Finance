@@ -223,12 +223,14 @@ PROFILS_RISQUE: Final[Mapping[str, Mapping[str, Any]]] = {
         "vente": 40.0,
         "description": "Conseils plus rares mais plus nets : il faut des signaux clairs pour acheter ou "
         "vendre. C'est le réglage du cahier des charges.",
+        "part_max_action_pct": 10.0,  # D-26 : au plus 10 % du capital sur une même action
     },
     "equilibre": {
         "nom": "Équilibré",
         "achat": 55.0,
         "vente": 45.0,
         "description": "Plus de conseils d'achat et de vente, avec des signaux un peu moins marqués.",
+        "part_max_action_pct": 20.0,
     },
     "dynamique": {
         "nom": "Dynamique",
@@ -236,8 +238,13 @@ PROFILS_RISQUE: Final[Mapping[str, Mapping[str, Any]]] = {
         "vente": 40.0,
         "description": "Achat conseillé dès que les signaux sont favorables, vente seulement quand ils sont "
         "nettement défavorables. Beaucoup d'achats conseillés : plus de risque.",
+        "part_max_action_pct": None,  # libre : simple avertissement au-delà d'EXPOSITION_AVERTISSEMENT_PCT
     },
 }
+
+# Exposition (D-26) : part du capital total placée sur une même action (position détenue + achat).
+# Prudent / Équilibré : achat refusé au-delà de part_max_action_pct ; Dynamique : avertissement seul.
+EXPOSITION_AVERTISSEMENT_PCT: Final = 35.0
 
 RAISONS_MIN: Final = 2
 RAISONS_MAX: Final = 4
@@ -299,6 +306,11 @@ def thresholds_for(profile: str | None) -> tuple[float, float]:
     if profile in PROFILS_RISQUE:
         return PROFILS_RISQUE[profile]["achat"], PROFILS_RISQUE[profile]["vente"]
     return SEUIL_ACHAT, SEUIL_VENTE
+
+
+def exposure_limit_for(profile: str | None) -> float | None:
+    """Part maximale du capital sur une même action pour ce profil (D-26) ; None = pas de limite."""
+    return (PROFILS_RISQUE.get(profile or "") or {}).get("part_max_action_pct")
 
 
 def check_rg04(poids: Mapping[str, float]) -> None:

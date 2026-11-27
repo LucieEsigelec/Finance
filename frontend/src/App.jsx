@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import LoadingState from './components/layout/LoadingState'
 import AccueilPage from './pages/AccueilPage'
@@ -19,7 +19,8 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<AccueilPage />} />
         <Route path="tableau-de-bord" element={<DashboardPage />} />
-        <Route path="simulateur" element={<SimulatorPage />} />
+        <Route path="ordres" element={<SimulatorPage />} />
+        <Route path="simulateur" element={<OldSimulatorRedirect />} />
         <Route path="action/:ticker" element={<Suspense fallback={<LoadingState />}><StockDetailPage /></Suspense>} />
         <Route path="historique" element={<Suspense fallback={<LoadingState />}><HistoryPage /></Suspense>} />
         <Route path="profil" element={<Suspense fallback={<LoadingState />}><ProfilePage /></Suspense>} />
@@ -27,6 +28,12 @@ export default function App() {
       </Route>
     </Routes>
   )
+}
+
+/** Ancienne adresse /simulateur (avant D-26) : redirige vers /ordres en gardant ?action=… */
+function OldSimulatorRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`/ordres${search}`} replace />
 }
 
 function NotFound() {

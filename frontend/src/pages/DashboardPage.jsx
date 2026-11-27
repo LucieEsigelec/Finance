@@ -24,8 +24,8 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <Link to="/simulateur" className="inline-flex h-10 items-center rounded-md bg-brand px-4 font-semibold text-on-brand no-underline hover:opacity-90">
-            Lancer une simulation
+          <Link to="/ordres" className="inline-flex h-10 items-center rounded-md bg-brand px-4 font-semibold whitespace-nowrap text-on-brand no-underline hover:opacity-90">
+            Acheter ou vendre
           </Link>
           <RiskIndicator variation={data.variation_hebdo_pct} level={data.niveau_alerte} />
         </div>

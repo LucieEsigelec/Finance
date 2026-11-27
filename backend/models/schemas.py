@@ -17,17 +17,25 @@ Operation = Literal["ACHAT", "VENTE"]
 
 
 class OperationLine(BaseModel):
-    """Une ligne du simulateur : une action et SON montant (D-14)."""
+    """Une ligne de la page Acheter / vendre : une action et SON montant en euros (D-14),
+    OU son nombre d'actions (D-26). Exactement l'un des deux."""
 
     model_config = ConfigDict(extra="forbid")
 
     ticker: str
-    montant_eur: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    montant_eur: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
+    quantite: int | None = Field(default=None, gt=0, le=10_000_000)
 
     @field_validator("ticker")
     @classmethod
     def upper(cls, value: str) -> str:
         return value.strip().upper()
+
+    @model_validator(mode="after")
+    def one_unit(self) -> "OperationLine":
+        if (self.montant_eur is None) == (self.quantite is None):
+            raise ValueError("Indiquez soit un montant en euros, soit un nombre d'actions")
+        return self
 
 
 class SimulateRequest(BaseModel):
