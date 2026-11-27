@@ -40,6 +40,15 @@ export default function AdviceCard({ result, children }) {
           </ul>
         </div>
       )}
+      {result.analyse_graphique?.length > 0 && (
+        <details className="group rounded-md border border-line px-3 py-2">
+          <summary className="cursor-pointer text-[14px] font-semibold text-brand">Voir l'analyse graphique (moyennes, supports, résistances)</summary>
+          <ul className="mt-2 mb-1 flex list-disc flex-col gap-1 pl-5 text-[14px]">
+            {result.analyse_graphique.map((sentence) => <li key={sentence}>{sentence}</li>)}
+          </ul>
+          <p className="m-0 text-[13px] text-muted">Explication seule : elle n'entre pas dans la note du conseil.</p>
+        </details>
+      )}
       {children}
     </article>
   )

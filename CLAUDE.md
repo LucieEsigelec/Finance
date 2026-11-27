@@ -116,7 +116,7 @@ backend\
 ├── db\       supabase_client.py · repository.py (seul accès à Supabase) · cached_repository.py (mémoire courte)
 ├── models\   schemas.py (validation des requêtes)
 ├── routers\  dashboard.py · simulator.py · transactions.py (+ historique) · stocks.py (+ refresh) · deps.py
-├── services\ info_scoring.py · technical_scoring.py · ratio_scoring.py · randomness_service.py · decision_engine.py
+├── services\ info_scoring.py · technical_scoring.py · chart_analysis.py (D-24, explication) · ratio_scoring.py · randomness_service.py · decision_engine.py
 │             sentiment.py · market_data.py · refresh_service.py · portfolio_service.py · common.py
 ├── tools\    refresh.py · stress_test.py · seed.py · check_supabase.py · reset_portfolio.py (D-23)
 └── tests\

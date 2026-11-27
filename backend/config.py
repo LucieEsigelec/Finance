@@ -145,6 +145,17 @@ IMPORTANCES_TECH: Final[Mapping[str, int]] = {
     "tendance": 5,
 }
 
+# Lecture détaillée du graphique (D-24) : EXPLICATION SEULE, n'entre pas dans la note.
+# Supports / résistances = niveaux où le cours a plusieurs fois rebondi ou buté (hors SPEC).
+SR_FENETRE_SEANCES: Final = 126  # environ 6 mois de séances
+SR_PIVOT_DEMI_FENETRE: Final = 5  # un sommet / creux = extrême sur ±5 séances
+SR_REGROUPEMENT_PCT: Final = 1.5  # sommets et creux à moins de 1,5 % = même niveau
+SR_TOUCHES_MIN: Final = 2  # un niveau touché au moins 2 fois
+SR_NOMBRE: Final = 2  # 2 supports et 2 résistances au plus
+SR_PROCHE_PCT: Final = 1.5  # « tout près » d'un niveau
+MM_SUPPORT_PROCHE_PCT: Final = 3.0  # moyenne juste sous / sur le cours : support / résistance mobile
+CROISEMENT_RECENT_SEANCES: Final = 20  # croisement de moyennes « récent » = sur un mois
+
 # ---------------------------------------------------------------------------
 # 5. Pilier Informations — SPEC §4
 # ---------------------------------------------------------------------------
