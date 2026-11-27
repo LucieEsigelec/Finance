@@ -11,16 +11,14 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import ROUND_DOWN, Decimal
+from decimal import Decimal
 from typing import Any
 
 import config
 from services.decision_engine import (
     APPROCHE,
     ATTEINT,
-    CENT,
     alert_level,
-    fmt_eur,
     fmt_pct,
     portfolio_value,
     positions,
@@ -106,39 +104,23 @@ def week_bounds(day: date) -> tuple[date, date]:
 
 
 def exposure_check(state: PortfolioState, ticker: str, montant_achat: Decimal) -> dict[str, Any]:
-    """Part du capital total sur ``ticker`` avant et après un achat de ``montant_achat`` (D-26).
+    """Part du capital total sur ``ticker`` avant et après un achat de ``montant_achat``.
 
-    Prudent / Équilibré : ``depasse`` = True si la position dépasserait la limite du profil
-    (message clair avec le montant encore possible). Dynamique : jamais bloqué, avertissement
-    au-delà de EXPOSITION_AVERTISSEMENT_PCT. Sans profil choisi : pas de limite."""
+    Au-delà du seuil du profil (Prudent 10 %, Équilibré 20 %, Dynamique 35 %, 35 % sans profil),
+    un avertissement est rendu. Rien n'est bloqué : le client reste seul décideur (D-27)."""
     total = Decimal(str(state.value))
-    price = Decimal(str(state.prices[ticker]))
-    held_value = Decimal(state.held.get(ticker, 0)) * price
-    montant = Decimal(str(montant_achat))
+    held_value = Decimal(state.held.get(ticker, 0)) * Decimal(str(state.prices[ticker]))
+    seuil = config.exposure_threshold_for(state.profil)
     if total <= 0:
-        return {"actuelle_pct": 0.0, "apres_pct": 0.0, "max_pct": None, "montant_max_eur": None,
-                "depasse": False, "message": None, "avertissement": None}
+        return {"actuelle_pct": 0.0, "apres_pct": 0.0, "seuil_pct": seuil, "avertissement": None}
     before = float(held_value / total * 100)
-    after = float((held_value + montant) / total * 100)
-    limit = config.exposure_limit_for(state.profil)
-    name = state.actions[ticker]["nom"]
-    result = {"actuelle_pct": round(before, 1), "apres_pct": round(after, 1), "max_pct": limit,
-              "montant_max_eur": None, "depasse": False, "message": None, "avertissement": None}
-    if limit is not None:
-        room = max(Decimal(0), (total * Decimal(str(limit)) / 100 - held_value)).quantize(CENT, rounding=ROUND_DOWN)
-        result["montant_max_eur"] = str(room)
-        if after > limit + 1e-9:
-            nom_profil = config.PROFILS_RISQUE[state.profil]["nom"]
-            deja = f"Vous détenez déjà {fmt_eur(held_value)} de {name} : " if held_value > 0 else ""
-            result["depasse"] = True
-            result["message"] = (
-                f"Votre profil {nom_profil} limite chaque action à {limit:.0f} % de votre capital "
-                f"({fmt_eur(total * Decimal(str(limit)) / 100)}). {deja}vous pouvez encore en acheter pour "
-                f"{fmt_eur(room)} au plus."
-            )
-    elif after > config.EXPOSITION_AVERTISSEMENT_PCT:
-        result["avertissement"] = (
-            f"Après cet achat, {name} représentera {fmt_pct(after, False)} de votre capital : "
-            "miser beaucoup sur une seule action augmente le risque."
+    after = float((held_value + Decimal(str(montant_achat))) / total * 100)
+    avertissement = None
+    if after > seuil + 1e-9:
+        profil = config.PROFILS_RISQUE.get(state.profil or "")
+        repere = f"au-delà des {seuil:.0f} % conseillés pour un profil {profil['nom']}" if profil else f"au-delà de {seuil:.0f} %"
+        avertissement = (
+            f"Après cet achat, {state.actions[ticker]['nom']} représentera {fmt_pct(after, False)} de votre capital, "
+            f"{repere} : miser beaucoup sur une seule action augmente le risque."
         )
-    return result
+    return {"actuelle_pct": round(before, 1), "apres_pct": round(after, 1), "seuil_pct": seuil, "avertissement": avertissement}

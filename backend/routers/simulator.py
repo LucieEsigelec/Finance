@@ -11,8 +11,8 @@ En bref, pour chaque titre coché :
 
 Chaque action cochée a son propre montant (D-14), en euros ou en nombre d'actions (D-26) ;
 pour un achat, le cash est décompté ligne après ligne, et la réponse contient le total.
-Un achat qui ferait dépasser la part du capital permise par le profil est refusé (Prudent,
-Équilibré) ou signalé (Dynamique) — D-26.
+Un achat qui placerait sur une même action plus que le seuil du profil est signalé par un
+avertissement, jamais refusé (D-27).
 """
 
 from __future__ import annotations
@@ -75,9 +75,7 @@ def simulate(request: SimulateRequest, repo=Depends(get_repo), now: datetime = D
             refuse = f"Vous ne détenez que {held} action{'s' if held > 1 else ''} {action['nom']} : vente impossible."
         exposition = None
         if request.operation == "ACHAT" and operation.verdict != REFUSE:
-            exposition = exposure_check(state, ticker, operation.montant_reel)
-            if exposition["depasse"]:
-                refuse = exposition["message"]
+            exposition = exposure_check(state, ticker, operation.montant_reel)  # avertissement seul (D-27)
         if refuse:
             operation = Operation(0, Decimal("0.00"), Decimal(str(montant)).quantize(CENT), REFUSE, refuse, Decimal("0.00"))
         if operation.verdict != REFUSE:

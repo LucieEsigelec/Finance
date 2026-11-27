@@ -161,7 +161,7 @@ Codes : `400` règle de gestion violée (cash insuffisant, vente > position, con
 
 - `NavBar` sur toutes les pages : 6 onglets (Accueil, Tableau de bord, Acheter / vendre, Actions, Historique, Profil), date des données, bouton « Actualiser les données ».
 - `AlertBanner` sous la NavBar, sur toutes les pages, dès que le niveau d'alerte n'est pas `AUCUN`.
-- **Seul chemin d'écriture** : Acheter / vendre → Voir le conseil → Valider → ConfirmDialog → `POST /api/transactions` → retour au tableau de bord. Saisie en euros ou en nombre d'actions ; limite d'exposition par profil (D-26). Les parcours détaillés sont dans [UI §5].
+- **Seul chemin d'écriture** : Acheter / vendre → Voir le conseil → Valider → ConfirmDialog → `POST /api/transactions` → retour au tableau de bord. Saisie en euros ou en nombre d'actions ; avertissement d'exposition par profil, sans blocage (D-26, D-27). Les parcours détaillés sont dans [UI §5].
 
 ### 3.5 Charte graphique `[CHARTE]`
 

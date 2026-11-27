@@ -28,7 +28,7 @@ export default function AdviceCard({ result, children }) {
         <div className="text-[13px]">
           <span className="text-muted">Part de votre capital sur cette action : </span>
           <span className="num font-semibold">{pctPlain(result.exposition.actuelle_pct)} → {pctPlain(result.exposition.apres_pct)}</span>
-          <span className="text-muted">{result.exposition.max_pct ? ` (limite de votre profil : ${result.exposition.max_pct} %)` : ''}</span>
+          <span className="text-muted">{` (seuil d'alerte de votre profil : ${result.exposition.seuil_pct} %)`}</span>
           {result.exposition.avertissement && (
             <div role="note" className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-warn">{result.exposition.avertissement}</div>
           )}

@@ -64,8 +64,7 @@ def profile_summary(state) -> dict[str, Any]:
         "nom": profile["nom"] if profile else "Par défaut",
         "seuil_achat": state.seuils[0],
         "seuil_vente": state.seuils[1],
-        "part_max_action_pct": config.exposure_limit_for(state.profil),  # D-26 ; None = libre
-        "exposition_avertissement_pct": config.EXPOSITION_AVERTISSEMENT_PCT,
+        "seuil_exposition_pct": config.exposure_threshold_for(state.profil),  # avertissement seul (D-27)
         # Première connexion : aucun profil choisi et la base peut l'enregistrer → dialogue de bienvenue (D-18)
         "a_choisir": state.profil is None and "profil_risque" in state.portfolio,
     }

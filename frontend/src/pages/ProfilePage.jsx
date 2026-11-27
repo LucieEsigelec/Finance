@@ -100,7 +100,7 @@ export default function ProfilePage() {
                   Achat si note ≥ {fmtNote(p.seuil_achat)} · Vente si note ≤ {fmtNote(p.seuil_vente)}
                 </div>
                 <div className="text-[13px] font-semibold text-brand">
-                  {p.part_max_action_pct ? `Au plus ${p.part_max_action_pct} % du capital sur une même action` : 'Pas de limite par action : avertissement au-delà de 35 % du capital'}
+                  {`Avertissement au-delà de ${p.seuil_exposition_pct} % du capital sur une même action`}
                 </div>
                 <p className="m-0 text-[13px] text-muted">{p.description}</p>
               </label>

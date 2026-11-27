@@ -7,8 +7,8 @@ import StockCheckbox from './ui/StockCheckbox'
 // Acheter / vendre (UI §4.4, ex-Simulateur, D-26). Saisie en euros ou en nombre d'actions (D-26). Une ligne par action : la case à cocher et, à côté, le montant que le
 // client veut investir (ou vendre) sur cette action (D-14). En bas, le total de l'opération
 // comparé au cash disponible. En vente, chaque action cochée affiche le nombre d'actions détenues ;
-// vendre plus que ce que l'on possède, ou dépasser la limite du profil, met la case en rouge
-// et grise « Voir le conseil » (D-19, D-26).
+// vendre plus que ce que l'on possède met la case en rouge et grise « Voir le conseil » (D-19) ;
+// à l'achat, une part du capital au-delà du seuil du profil s'affiche en orange, sans bloquer (D-27).
 // Le panneau ne fait aucun appel : la page reçoit la demande.
 export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, operation, onOperation, unit = 'eur', onUnit, errors, hints = {}, total, cash, holdings = {}, blocked = false, blockedMessage, onSimulate, loading }) {
   const isBuy = operation === 'ACHAT'
@@ -99,7 +99,7 @@ export default function SimulatorPanel({ amounts, onAmount, selected, onToggle, 
                   )}
                   {checked && hints[stock.ticker] && (
                     <div className={`text-right text-[13px] ${hints[stock.ticker].warn ? 'font-medium text-warn' : 'text-muted'}`}>
-                      {hints[stock.ticker].text}{hints[stock.ticker].warn ? ' : exposition élevée' : ''}
+                      {hints[stock.ticker].text}{hints[stock.ticker].warn ? ' : au-delà du seuil de votre profil' : ''}
                     </div>
                   )}
                 </>
